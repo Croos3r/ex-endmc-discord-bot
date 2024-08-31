@@ -19,7 +19,7 @@ export type PokemonStat = { stat: NamedAPIResource; base_stat: number };
 
 export type PokemonSpecies = NamedAPIResource & {
 	capture_rate: number;
-	habitat: PokemonHabitat;
+	habitat: PokemonHabitat | null;
 	egg_groups: Array<PokemonEggGroup>;
 	color: PokemonColor;
 };
@@ -62,7 +62,7 @@ export type PokemonDetails = {
 	abilities: Array<string>;
 	color: string;
 	captureRate: number;
-	habitat: string;
+	habitat: string | null;
 	types: Array<string>;
 	eggGroups: Array<string>;
 	stats: Array<{ name: string; stat: number }>;
@@ -83,7 +83,9 @@ export async function getPokemonDetails(
 		),
 		color: capitalizeFirstLetter(pokemonSpecies.color.name),
 		captureRate: pokemonSpecies.capture_rate,
-		habitat: capitalizeFirstLetter(pokemonSpecies.habitat.name),
+		habitat: pokemonSpecies.habitat
+			? capitalizeFirstLetter(pokemonSpecies.habitat.name)
+			: null,
 		types: pokemon.types.map((type) => capitalizeFirstLetter(type.type.name)),
 		eggGroups: pokemonSpecies.egg_groups.map((eggGroup) =>
 			capitalizeFirstLetter(eggGroup.name),

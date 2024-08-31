@@ -30,7 +30,7 @@ export class Pokedex {
 					**Abilities** ${pokemonDetails.abilities.join(", ")}
 					**Color** ${pokemonDetails.color}
 					**Capture Rate** ${pokemonDetails.captureRate}
-					**Habitat** ${pokemonDetails.habitat}
+					**Habitat** ${pokemonDetails.habitat ?? "Unknown"}
 					**Types** ${pokemonDetails.types.join(", ")}
 					
 					\`🥚\` **Egg Groups**
