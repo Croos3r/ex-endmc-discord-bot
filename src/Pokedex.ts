@@ -61,19 +61,19 @@ export class Pokedex {
 		})
 		pokemonName: string,
 		interaction: CommandInteraction
-	): Promise<void> {
+	) {
 		const lowerCaseURLEncodedPokemonName = encodeURIComponent(pokemonName.toLowerCase())
-		const pokemonDetails = await getCachedByIdOrCacheResult(lowerCaseURLEncodedPokemonName, () => getPokemonDetails(pokemonName)).catch(error => {
+		const pokemonDetails = await getCachedByIdOrCacheResult(lowerCaseURLEncodedPokemonName, () => getPokemonDetails(lowerCaseURLEncodedPokemonName)).catch(error => {
 			if (error.response?.status !== 404) {
 				console.log(error)
-				return 'error'
+				return 'error' as const
 			}
 			return 'unknown' as const
 		})
 
-		if (pokemonDetails === 'unknown') await interaction.reply('Unknown pokemon')
-		else if (pokemonDetails === 'error') await interaction.reply('An error occurred')
-		else await interaction.reply(Pokedex.homeEmbedAndComponents(pokemonDetails))
+		if (pokemonDetails === 'unknown') return await interaction.reply('Unknown pokemon')
+		if (pokemonDetails === 'error') return await interaction.reply('An error occurred')
+		await interaction.reply(Pokedex.homeEmbedAndComponents(pokemonDetails))
 	}
 
 	@ButtonComponent({id: /base-stats-\d+/})

@@ -42,8 +42,8 @@ export type Pokemon = NamedAPIResource & {
 	stats: Array<PokemonStat>;
 };
 
-export async function getPokemon(pokemonName: string): Promise<Pokemon> {
-	const response = await AXIOS_INSTANCE.get(`pokemon/${pokemonName}`);
+export async function getPokemon(pokemonNameOrId: string): Promise<Pokemon> {
+	const response = await AXIOS_INSTANCE.get(`pokemon/${pokemonNameOrId}`);
 	return response.data;
 }
 
@@ -69,9 +69,9 @@ export type PokemonDetails = {
 };
 
 export async function getPokemonDetails(
-	pokemonName: string,
+	pokemonNameOrId: string,
 ): Promise<PokemonDetails> {
-	const pokemon = await getPokemon(pokemonName);
+	const pokemon = await getPokemon(pokemonNameOrId);
 	const pokemonSpecies = await getPokemonSpecies(pokemon.species.name);
 	return {
 		name: capitalizeFirstLetter(pokemon.name),
