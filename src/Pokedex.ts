@@ -34,7 +34,7 @@ export class Pokedex {
 					**Types** ${pokemonDetails.types.join(", ")}
 					
 					\`🥚\` **Egg Groups**
-					**Egg Groups** ${pokemonDetails.eggGroups.join(", ")}
+					**Egg Groups** ${pokemonDetails.eggGroups.length > 0 ? pokemonDetails.eggGroups.join(", ") : "Unknown"}
 					`)
 			],
 			components: [
@@ -89,7 +89,7 @@ export class Pokedex {
 					.setTitle(`${pokemonDetails.name} | #${pokemonDetails.id}`)
 					.setDescription(`
 					\`📜\` **Base Stats**
-					${pokemonDetails.stats.map(({name, stat}) => `**${name}** (${stat})\n\`${"#".repeat(stat/100*30)}${"-".repeat(30-stat/100*30)}\``).join("\n")}
+					${pokemonDetails.stats.map(({name, stat}) => `**${name}** (${stat})\n\`${"#".repeat(stat/255*30)}${"-".repeat(30-stat/255*30)}\``).join("\n")}
 					`)
 			],
 			components: [
