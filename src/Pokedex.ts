@@ -56,7 +56,8 @@ export class Pokedex {
 		@SlashOption({
 			name: "pokemon-name-or-id",
 			description: "Pokemon's name or id",
-			type: ApplicationCommandOptionType.String
+			type: ApplicationCommandOptionType.String,
+			required: true
 		})
 		pokemonName: string,
 		interaction: CommandInteraction
