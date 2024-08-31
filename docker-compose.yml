@@ -6,7 +6,16 @@ services:
       - BOT_TOKEN=${BOT_TOKEN}
       - REDIS_HOST=cache
       - REDIS_PORT=6379
+    restart: unless-stopped
   cache:
     image: redis:alpine
     ports:
       - "6379"
+  database:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "5432:5432"

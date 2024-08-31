@@ -3,6 +3,7 @@ import type { Interaction, Message } from 'discord.js'
 import { IntentsBitField } from 'discord.js'
 import { Client } from 'discordx'
 import { configDotenv } from 'dotenv'
+import 'reflect-metadata'
 
 configDotenv({ path: ".env" });
 
@@ -60,7 +61,7 @@ async function run() {
 
 	// The following syntax should be used in the ECMAScript environment
 	await importx(
-		`${dirname(import.meta.url)}/{Pokedex,commands,events}.{ts,js}`,
+		`${dirname(import.meta.url)}/{Pokedex,PCStorage,Inventory,Database}.{ts,js}`,
 	);
 
 	// Let's start the bot
