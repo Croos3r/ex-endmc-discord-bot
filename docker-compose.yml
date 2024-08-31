@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    command: node build/main.js
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - REDIS_HOST=cache
+      - REDIS_PORT=6379
+  cache:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
