@@ -9,8 +9,8 @@ import {
 	type MessageActionRowComponentBuilder,
 	type User,
 } from 'discord.js'
-import { ButtonComponent, Discord, Slash, SlashGroup, SlashOption } from 'discordx'
-import { getCachedByIdOrCacheResult, invalidateCache } from './Cache.js'
+import { type ArgsOf, ButtonComponent, Discord, On, Slash, SlashGroup, SlashOption } from 'discordx'
+import { getCachedByIdOrCacheResult, invalidateCache, isDelayKeyActive, setDelayKey } from './Cache.js'
 import DATA_SOURCE from './Database.js'
 import { Storage } from './Storage.js'
 import Pokemon from './entities/Pokemon.js'
@@ -142,5 +142,36 @@ export class Inventory {
 		await invalidateCache(`inventory:full:${targetUser.id}`)
 		const pokemonDetails = await Storage.getDatabasePokemonDetails(pokemonToTransfer)
 		await interaction.reply({ephemeral: true, content: `Pokemon No ${pokemonToTransfer.id} (Level ${pokemonToTransfer.level} ${"error" in pokemonDetails ? "Unknown" : pokemonDetails.name} (#${pokemonDetails.pokeAPIId})) removed from your inventory`})
+	}
+
+	@On({event: "messageCreate"})
+	async onMessageCreate([message]: ArgsOf<"messageCreate">) {
+		if (message.author.bot) return
+		const user = message.author
+
+		const isExperiencedDelayed = await isDelayKeyActive(`experience-delay:${user.id}`)
+
+		if (isExperiencedDelayed)
+			return
+		await setDelayKey(`experience-delay:${user.id}`, 10)
+		const pokemons = DATA_SOURCE.getRepository(Pokemon)
+		const targetUsersInventoryPokemons = await pokemons.find({ where: { heldBy: user.id }, take: 3 })
+		if (targetUsersInventoryPokemons.length === 0) return
+		await pokemons.save(await Promise.all(targetUsersInventoryPokemons.map(async ({experience, level, ...rest}) => {
+			const pokemonDetails = await Storage.getDatabasePokemonDetails({...rest, experience, level})
+			// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
+			experience += Math.ceil(eval("1 / level * 10"))
+			// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
+			if (experience >= Math.ceil(eval("level * 100"))) {
+				experience = 0
+				level++
+				await user.send(`Your ${"error" in pokemonDetails ? "Unknown pokemon" : pokemonDetails.name} (No ${pokemonDetails.id}/#${pokemonDetails.pokeAPIId}) has leveled up to level ${level}`)
+			}
+			return {
+				...rest,
+				level,
+				experience,
+			}
+		})))
 	}
 }

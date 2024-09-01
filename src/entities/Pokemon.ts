@@ -11,8 +11,8 @@ export default class Pokemon {
 	@Column("smallint", { unsigned: true, default: 1 })
 	level!: number;
 
-	@Column("bigint", { unsigned: true, default: 0 })
-	experience!: bigint;
+	@Column("int", { unsigned: true, default: 0 })
+	experience!: number;
 
 	@Column("varchar", { nullable: true, default: null })
 	storedBy!: string | null;
