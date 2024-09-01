@@ -19,4 +19,22 @@ export default class Pokemon {
 
 	@Column("varchar", { nullable: true, default: null })
 	heldBy!: string | null;
+
+	@Column("smallint", { unsigned: true, default: 0 })
+	health!: number;
+
+	@Column("smallint", { unsigned: true, default: 0 })
+	attack!: number;
+
+	@Column("smallint", { unsigned: true, default: 0 })
+	defense!: number;
+
+	@Column("smallint", { unsigned: true, default: 0 })
+	specialAttack!: number;
+
+	@Column("smallint", { unsigned: true, default: 0 })
+	specialDefense!: number;
+
+	@Column("smallint", { unsigned: true, default: 0 })
+	speed!: number;
 }

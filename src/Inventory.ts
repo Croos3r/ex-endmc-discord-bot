@@ -151,26 +151,36 @@ export class Inventory {
 
 		const isExperiencedDelayed = await isDelayKeyActive(`experience-delay:${user.id}`)
 
-		if (isExperiencedDelayed)
-			return
+		if (isExperiencedDelayed) return
 		await setDelayKey(`experience-delay:${user.id}`, 10)
 		const pokemons = DATA_SOURCE.getRepository(Pokemon)
 		const targetUsersInventoryPokemons = await pokemons.find({ where: { heldBy: user.id }, take: 3 })
 		if (targetUsersInventoryPokemons.length === 0) return
-		await pokemons.save(await Promise.all(targetUsersInventoryPokemons.map(async ({experience, level, ...rest}) => {
-			const pokemonDetails = await Storage.getDatabasePokemonDetails({...rest, experience, level})
+		await pokemons.save(await Promise.all(targetUsersInventoryPokemons.map(async pokemon => {
+			let { level, experience, ...rest } = pokemon
+			const { health, attack, defense, specialAttack, specialDefense, speed} = rest
+			const pokemonDetails = await Storage.getDatabasePokemonDetails({...rest, experience, level })
 			// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
 			experience += Math.ceil(eval("1 / level * 10"))
+			let stats = [health, attack, defense, specialAttack, specialDefense, speed]
 			// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
 			if (experience >= Math.ceil(eval("level * 100"))) {
 				experience = 0
 				level++
-				await user.send(`Your ${"error" in pokemonDetails ? "Unknown pokemon" : pokemonDetails.name} (No ${pokemonDetails.id}/#${pokemonDetails.pokeAPIId}) has leveled up to level ${level}`)
+				stats = stats.map(stat => stat + Math.ceil(Math.random() * 5))
+				await user.send(`Your ${"error" in pokemonDetails ? "Unknown pokemon" : pokemonDetails.name} (No ${pokemonDetails.id}/#${pokemonDetails.pokeAPIId}) has leveled up to level ${level} you can check its new stat with /pc pokemon view ${pokemon.id}`)
 			}
+			const [newHealth, newAttack, newDefense, newSpecialAttack, newSpecialDefense, newSpeed] = stats
 			return {
 				...rest,
 				level,
 				experience,
+				health: newHealth,
+				attack: newAttack,
+				defense: newDefense,
+				specialAttack: newSpecialAttack,
+				specialDefense: newSpecialDefense,
+				speed: newSpeed,
 			}
 		})))
 	}
