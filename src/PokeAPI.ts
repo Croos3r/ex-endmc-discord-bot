@@ -91,7 +91,7 @@ export async function getPokemonDetails(
 			capitalizeFirstLetter(eggGroup.name),
 		),
 		stats: pokemon.stats.map(({ stat: { name }, base_stat }) => ({
-			name: capitalizeFirstLetter(name),
+			name: name === "hp" ? "HP" : capitalizeFirstLetter(name),
 			stat: base_stat,
 		})),
 	};
