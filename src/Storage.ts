@@ -20,10 +20,37 @@ import Pokemon from './entities/Pokemon.js'
 @SlashGroup({ name: 'storage', description: 'Storage commands', root: 'pc' })
 @SlashGroup('storage', 'pc')
 export class Storage {
+	public static async getDatabasePokemonDetails(storedPokemon: Pokemon) {
+		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${storedPokemon.pokeAPIId.toString()}`, () => getPokemonDetails(storedPokemon.pokeAPIId.toString()))
+			.catch(error => {
+				if (error.response?.status !== 404) {
+					console.error(`An error occured during fetch of pokemon's details ${storedPokemon.id} (#${storedPokemon.pokeAPIId})`, error)
+					return 'error' as const
+				}
+				return 'unknown' as const
+			})
+
+		if (pokemonDetails === 'unknown' || pokemonDetails === 'error') return {
+			...storedPokemon,
+			error: pokemonDetails,
+		}
+		return {
+			...storedPokemon,
+			name: pokemonDetails.name,
+		}
+	}
+
+	static async getPCMaxPage(targetUser: User) {
+		return getCachedByIdOrCacheResult(`pc:max-page:${targetUser.id}`, async () => {
+			const pokemons = DATA_SOURCE.getRepository(Pokemon)
+			const count = await pokemons.count({where: {storedBy: targetUser.id}})
+			return Math.ceil(count / 24)
+		})
+	}
+
 	static async getPCPageComponents(targetUser: User, pageNumber: number) {
 		const pcPagePokemons = await Storage.getPCPagePokemons(targetUser, pageNumber)
-		const maxPage = await getCachedByIdOrCacheResult(`pc-max-page:${targetUser.id}`, () => DATA_SOURCE.getRepository(Pokemon).count({where: {storedBy: targetUser.id}}).then(count => Math.ceil(count / 25)))
-		console.log(maxPage)
+		const maxPage = await Storage.getPCMaxPage(targetUser)
 		if (maxPage === 0) {
 			return {
 				content: `${targetUser.displayName}'s PC is empty`,
@@ -42,6 +69,7 @@ export class Storage {
 		}
 		if (pageNumber > maxPage) return {content: `Page ${pageNumber} not found`, ephemeral: true}
 		return {
+			content: "",
 			embeds: [
 				new EmbedBuilder()
 					.setTitle(`${targetUser.displayName}'s PC`)
@@ -49,18 +77,18 @@ export class Storage {
 					.addFields(pcPagePokemons.map(pokemon => {
 						if ('error' in pokemon) {
 							if (pokemon.error === 'unknown') return {
-								name: `Unknown Pokemon #${pokemon.pokeapiId}`,
+								name: `Unknown Pokemon #${pokemon.pokeAPIId}`,
 								value: `Level: ${pokemon.level}`,
 								inline: true,
 							}
 							return {
-								name: `Unknown Pokemon #${pokemon.pokeapiId}`,
+								name: `Unknown Pokemon #${pokemon.pokeAPIId}`,
 								value: `Level: ${pokemon.level} - Error: Could not fetch details`,
 								inline: true,
 							}
 						}
 						return {
-							name: `${pokemon.id}. ${pokemon.name} (#${pokemon.pokeapiId})`,
+							name: `${pokemon.id}. ${pokemon.name} (#${pokemon.pokeAPIId})`,
 							value: `Level: ${pokemon.level}`,
 							inline: true,
 						}
@@ -80,29 +108,11 @@ export class Storage {
 
 	static async getPCPagePokemons(targetUser: User, pageNumber: number) {
 		const pokemons = DATA_SOURCE.getRepository(Pokemon)
-		const targetUsersPokemons = await pokemons.find({where: {storedBy: targetUser.id}, skip: pageNumber ? (pageNumber - 1) * 25 : 0, take: 25})
+		const targetUsersPokemons = await pokemons.find({where: {storedBy: targetUser.id}, skip: pageNumber ? (pageNumber - 1) * 24 : 0, take: 24})
 
 		if (targetUsersPokemons.length === 0) return []
 
-		return await Promise.all(targetUsersPokemons.map(async pokemon => {
-			const pokemonDetails = await getCachedByIdOrCacheResult(pokemon.pokeapiId.toString(), () => getPokemonDetails(pokemon.pokeapiId.toString()))
-				.catch(error => {
-					if (error.response?.status !== 404) {
-						console.log(error)
-						return 'error' as const
-					}
-					return 'unknown' as const
-				})
-
-			if (pokemonDetails === 'unknown' || pokemonDetails === 'error') return {
-				...pokemon,
-				error: pokemonDetails,
-			}
-			return {
-				...pokemon,
-				name: pokemonDetails.name,
-			}
-		}))
+		return await Promise.all(targetUsersPokemons.map(Storage.getDatabasePokemonDetails))
 	}
 
 	@ButtonComponent({id: /pc-page-\d+-\d+/})
@@ -139,9 +149,9 @@ export class Storage {
 	) {
 		const targetUser = user ?? interaction.user
 		const lowerCaseURLEncodedPokemonName = encodeURIComponent(pokemonNameOrId.toLowerCase())
-		const pokemonDetails = await getCachedByIdOrCacheResult(lowerCaseURLEncodedPokemonName, () => getPokemonDetails(lowerCaseURLEncodedPokemonName)).catch(error => {
+		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${lowerCaseURLEncodedPokemonName}`, () => getPokemonDetails(lowerCaseURLEncodedPokemonName)).catch(error => {
 			if (error.response?.status !== 404) {
-				console.log(error)
+				console.error(`An error occured during fetch of to-be-stored pokemon ${pokemon.id} (#${pokemon.pokeAPIId})`, error)
 				return 'error' as const
 			}
 			return 'unknown' as const
@@ -152,11 +162,11 @@ export class Storage {
 		const pokemons = DATA_SOURCE.getRepository(Pokemon)
 
 		const pokemon = pokemons.create({
-			pokeapiId: pokemonDetails.id,
+			pokeAPIId: pokemonDetails.id,
 			storedBy: targetUser.id,
 		})
 		await pokemons.save(pokemon)
-		await invalidateCache(`pc-max-page:${targetUser.id}`)
+		await invalidateCache(`pc:max-page:${targetUser.id}`)
 
 		await interaction.reply({content: `Pokemon ${pokemonDetails.name} (#${pokemonDetails.id}) successfully added to **${targetUser.displayName}**'s PC`, ephemeral: true})
 	}
@@ -179,7 +189,7 @@ export class Storage {
 		}
 
 		await pokemons.remove(pokemon)
-		await invalidateCache(`pc-max-page:${targetUser.id}`)
+		await invalidateCache(`pc:max-page:${targetUser.id}`)
 		await interaction.reply({content: `Pokemon #${pokemonPCId} successfully removed from **${targetUser.displayName}**'s PC`, ephemeral: true})
 	}
 }
