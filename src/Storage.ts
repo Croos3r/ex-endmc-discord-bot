@@ -164,6 +164,12 @@ export class Storage {
 		const pokemon = pokemons.create({
 			pokeAPIId: pokemonDetails.id,
 			storedBy: targetUser.id,
+			health: pokemonDetails.stats.find(stat => stat.name === 'HP')?.stat ?? 0,
+			attack: pokemonDetails.stats.find(stat => stat.name === 'Attack')?.stat ?? 0,
+			defense: pokemonDetails.stats.find(stat => stat.name === 'Defense')?.stat ?? 0,
+			specialAttack: pokemonDetails.stats.find(stat => stat.name === 'Special-attack')?.stat ?? 0,
+			specialDefense: pokemonDetails.stats.find(stat => stat.name === 'Special-defense')?.stat ?? 0,
+			speed: pokemonDetails.stats.find(stat => stat.name === 'Speed')?.stat ?? 0,
 		})
 		await pokemons.save(pokemon)
 		await invalidateCache(`pc:max-page:${targetUser.id}`)
