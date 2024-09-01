@@ -63,7 +63,7 @@ export class Pokedex {
 		interaction: CommandInteraction
 	) {
 		const lowerCaseURLEncodedPokemonName = encodeURIComponent(pokemonName.toLowerCase())
-		const pokemonDetails = await getCachedByIdOrCacheResult(lowerCaseURLEncodedPokemonName, () => getPokemonDetails(lowerCaseURLEncodedPokemonName)).catch(error => {
+		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${lowerCaseURLEncodedPokemonName}`, () => getPokemonDetails(lowerCaseURLEncodedPokemonName)).catch(error => {
 			if (error.response?.status !== 404) {
 				console.log(error)
 				return 'error' as const
@@ -73,13 +73,15 @@ export class Pokedex {
 
 		if (pokemonDetails === 'unknown') return await interaction.reply('Unknown pokemon')
 		if (pokemonDetails === 'error') return await interaction.reply('An error occurred')
-		await interaction.reply(Pokedex.homeEmbedAndComponents(pokemonDetails))
+		await interaction.reply({
+			ephemeral: true, ...Pokedex.homeEmbedAndComponents(pokemonDetails),
+		})
 	}
 
 	@ButtonComponent({id: /base-stats-\d+/})
 	async baseStats(interaction: ButtonInteraction): Promise<void> {
 		const pokemonId = interaction.customId.split("-")[2]
-		const pokemonDetails = await getCachedByIdOrCacheResult(pokemonId, () => getPokemonDetails(pokemonId))
+		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${pokemonId}`, () => getPokemonDetails(pokemonId))
 
 		await interaction.update({
 			embeds: [
@@ -110,8 +112,10 @@ export class Pokedex {
 	@ButtonComponent({id: /home-\d+/})
 	async home(interaction: ButtonInteraction): Promise<void> {
 		const pokemonId = interaction.customId.split("-")[1]
-		const pokemonDetails = await getCachedByIdOrCacheResult(pokemonId, () => getPokemonDetails(pokemonId))
+		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${pokemonId}`, () => getPokemonDetails(pokemonId))
 
-		await interaction.update(Pokedex.homeEmbedAndComponents(pokemonDetails))
+		await interaction.reply({
+			ephemeral: true, ...Pokedex.homeEmbedAndComponents(pokemonDetails),
+		})
 	}
 }
