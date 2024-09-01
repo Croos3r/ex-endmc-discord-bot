@@ -13,16 +13,24 @@ export async function invalidateCache(key: string): Promise<void> {
 export async function getCachedByIdOrCacheResult<T>(
 	key: string,
 	fetcherFunction: () => Promise<T>,
+	expireInSeconds = 60 * 60 * 24 * 7 /* One week */,
 ): Promise<T> {
 	const cachedResult = await REDIS_INSTANCE.get(key);
 
-	if (cachedResult) return JSON.parse(cachedResult);
+	if (cachedResult) {
+		await REDIS_INSTANCE.expire(key, expireInSeconds);
+		return JSON.parse(cachedResult);
+	}
 
 	const result = await fetcherFunction();
-	await REDIS_INSTANCE.setex(
-		key,
-		60 * 60 * 24 * 7 /* One week */,
-		JSON.stringify(result),
-	);
+	await REDIS_INSTANCE.setex(key, expireInSeconds, JSON.stringify(result));
 	return result;
+}
+
+export async function setDelayKey(key: string, expireInSeconds: number) {
+	await REDIS_INSTANCE.setex(key, expireInSeconds, "");
+}
+
+export async function isDelayKeyActive(key: string): Promise<boolean> {
+	return !!(await REDIS_INSTANCE.exists(key));
 }
