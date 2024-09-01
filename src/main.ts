@@ -1,5 +1,5 @@
 import { dirname, importx } from '@discordx/importer'
-import type { Interaction, Message } from 'discord.js'
+import type { Interaction } from 'discord.js'
 import { IntentsBitField } from 'discord.js'
 import { Client } from 'discordx'
 import { configDotenv } from 'dotenv'
@@ -16,8 +16,6 @@ export const bot = new Client({
 		IntentsBitField.Flags.Guilds,
 		IntentsBitField.Flags.GuildMembers,
 		IntentsBitField.Flags.GuildMessages,
-		IntentsBitField.Flags.GuildMessageReactions,
-		IntentsBitField.Flags.GuildVoiceStates,
 	],
 
 	// Debug logs are disabled in silent mode
@@ -51,17 +49,13 @@ bot.on("interactionCreate", (interaction: Interaction) => {
 	bot.executeInteraction(interaction);
 });
 
-bot.on("messageCreate", (message: Message) => {
-	void bot.executeCommand(message);
-});
-
 async function run() {
 	// The following syntax should be used in the commonjs environment
 	// await importx(__dirname + '/{events,commands}/**/*.{ts,js}')
 
 	// The following syntax should be used in the ECMAScript environment
 	await importx(
-		`${dirname(import.meta.url)}/{Pokedex,PCStorage,Inventory,Database}.{ts,js}`,
+		`${dirname(import.meta.url)}/{Pokedex,Storage,Inventory,Database}.{ts,js}`,
 	);
 
 	// Let's start the bot
