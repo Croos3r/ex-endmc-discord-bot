@@ -6,7 +6,7 @@ export default class Pokemon {
 	id!: number;
 
 	@Column("smallint", { unsigned: true })
-	pokeapiId!: number;
+	pokeAPIId!: number;
 
 	@Column("smallint", { unsigned: true, default: 1 })
 	level!: number;
