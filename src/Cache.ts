@@ -6,6 +6,10 @@ const REDIS_INSTANCE = new Redis({
 	port: process.env.REDIS_PORT,
 });
 
+export async function invalidateCache(key: string): Promise<void> {
+	await REDIS_INSTANCE.del(key);
+}
+
 export async function getCachedByIdOrCacheResult<T>(
 	key: string,
 	fetcherFunction: () => Promise<T>,
