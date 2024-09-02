@@ -14,6 +14,9 @@ RUN npm install
 COPY src ./src
 COPY tsconfig.json   .
 
+# Move configuration.yaml
+COPY configuration.yaml .
+
 # Build project
 RUN npm run build
 
@@ -31,6 +34,9 @@ RUN npm install --omit=dev
 
 # Move build files
 COPY --from=build-runner /tmp/app/build /app/build
+
+# Copy configuration.yaml from build-runner
+COPY --from=build-runner /tmp/app/configuration.yaml /app/configuration.yaml
 
 # Start bot
 CMD [ "npm", "run", "start" ]

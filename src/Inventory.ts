@@ -11,6 +11,7 @@ import {
 } from 'discord.js'
 import { type ArgsOf, ButtonComponent, Discord, On, Slash, SlashGroup, SlashOption } from 'discordx'
 import { getCachedByIdOrCacheResult, invalidateCache, isDelayKeyActive, setDelayKey } from './Cache.js'
+import { CONFIGURATION } from './Configuration.js'
 import DATA_SOURCE from './Database.js'
 import { Storage } from './Storage.js'
 import Pokemon from './entities/Pokemon.js'
@@ -26,18 +27,18 @@ export class Inventory {
 	static async isInventoryFull(targetUser: User) {
 		return await getCachedByIdOrCacheResult(`inventory:full:${targetUser.id}`, async () => {
 			const pokemons = DATA_SOURCE.getRepository(Pokemon)
-			return await pokemons.count({where: {heldBy: targetUser.id}}) >= 3
+			return await pokemons.count({where: {heldBy: targetUser.id}}) >= CONFIGURATION.inventory.size
 		})
 	}
 
 	static async getInventoryComponents(targetUser: User) {
-		const [a, b, c] = await Inventory.getInventoryPokemons(targetUser)
+		const inventoryPokemons = await Inventory.getInventoryPokemons(targetUser)
 		const refreshButton = new ActionRowBuilder<MessageActionRowComponentBuilder>({
 			components: [
 				new ButtonBuilder().setLabel('Refresh').setEmoji("🔃").setStyle(ButtonStyle.Secondary).setCustomId(`inventory-refresh-${targetUser.id}`),
 			]
 		})
-		if (!a && !b && !c)
+		if (inventoryPokemons.length === 0)
 			return {
 				content: `${targetUser.displayName}'s inventory is empty.\n Use \`/pc inventory add\` to add pokemons`,
 				components: [
@@ -49,23 +50,24 @@ export class Inventory {
 			embeds: [
 				new EmbedBuilder()
 					.setTitle(`${targetUser.displayName}'s Inventory`)
-					.addFields(await Promise.all([a, b, c].map(async (pokemon, index) => {
-						if (pokemon && "error" in pokemon) {
-							if (pokemon.error === 'unknown')
-								return {
-									name: `Slot ${index + 1}`,
-									value: `Unknown Pokemon #${pokemon.pokeAPIId}`,
-								}
+					.addFields(await Promise.all(inventoryPokemons.map(async (pokemon, index) => {
+						if ("error" in pokemon)
 							return {
 								name: `Slot ${index + 1}`,
-								value: `Error fetching Pokemon #${pokemon.pokeAPIId}`,
+								value: pokemon.error === "unknown" ? `Unknown Pokemon #${pokemon.pokeAPIId}` : `Error fetching Pokemon #${pokemon.pokeAPIId}`,
 							}
-						}
 						return {
 							name: `Slot ${index + 1}`,
-							value: pokemon ? `${pokemon.id}. ${pokemon.name} (#${pokemon.pokeAPIId})` : 'Empty',
+							value: `${pokemon.id}. ${pokemon.name} (#${pokemon.pokeAPIId})`,
 						}
 					})))
+					.addFields(Array(CONFIGURATION.inventory.size - inventoryPokemons.length).fill(1).map((slot, index) => {
+						const slotNumber = inventoryPokemons.length + index + 1
+						return {
+							name: `Slot ${slotNumber}`,
+							value: "Empty",
+						}
+					})),
 			],
 			components: [
 				refreshButton
@@ -75,7 +77,7 @@ export class Inventory {
 
 	static async getInventoryPokemons(targetUser: User) {
 		const pokemons = DATA_SOURCE.getRepository(Pokemon)
-		const targetUsersInventoryPokemons = await pokemons.find({ where: { heldBy: targetUser.id }, take: 3 })
+		const targetUsersInventoryPokemons = await pokemons.find({ where: { heldBy: targetUser.id }, take: CONFIGURATION.inventory.size })
 		if (targetUsersInventoryPokemons.length === 0) return []
 
 		return await Promise.all(targetUsersInventoryPokemons.map(Storage.getDatabasePokemonDetails))
@@ -152,22 +154,22 @@ export class Inventory {
 		const isExperiencedDelayed = await isDelayKeyActive(`experience-delay:${user.id}`)
 
 		if (isExperiencedDelayed) return
-		await setDelayKey(`experience-delay:${user.id}`, 10)
+		await setDelayKey(`experience-delay:${user.id}`, CONFIGURATION.leveling.experienceGainCooldown)
 		const pokemons = DATA_SOURCE.getRepository(Pokemon)
-		const targetUsersInventoryPokemons = await pokemons.find({ where: { heldBy: user.id }, take: 3 })
+		const targetUsersInventoryPokemons = await pokemons.find({ where: { heldBy: user.id }, take: CONFIGURATION.inventory.size })
 		if (targetUsersInventoryPokemons.length === 0) return
 		await pokemons.save(await Promise.all(targetUsersInventoryPokemons.map(async pokemon => {
 			let { level, experience, ...rest } = pokemon
 			const { health, attack, defense, specialAttack, specialDefense, speed} = rest
 			const pokemonDetails = await Storage.getDatabasePokemonDetails({...rest, experience, level })
 			// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
-			experience += Math.ceil(eval("1 / level * 10"))
+			experience += Math.ceil(eval(CONFIGURATION.leveling.experiencePerMessage))
 			let stats = [health, attack, defense, specialAttack, specialDefense, speed]
 			// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
-			if (experience >= Math.ceil(eval("level * 100"))) {
+			if (experience >= Math.ceil(eval(CONFIGURATION.leveling.experiencePerLevel))) {
 				experience = 0
 				level++
-				stats = stats.map(stat => stat + Math.ceil(Math.random() * 5))
+				stats = stats.map(stat => stat + CONFIGURATION.leveling.pointsAbilityPerLevel.min + Math.ceil(Math.random() * CONFIGURATION.leveling.pointsAbilityPerLevel.max - CONFIGURATION.leveling.pointsAbilityPerLevel.min))
 				await user.send(`Your ${"error" in pokemonDetails ? "Unknown pokemon" : pokemonDetails.name} (No ${pokemonDetails.id}/#${pokemonDetails.pokeAPIId}) has leveled up to level ${level} you can check its new stat with /pc pokemon view ${pokemon.id}`)
 			}
 			const [newHealth, newAttack, newDefense, newSpecialAttack, newSpecialDefense, newSpeed] = stats

@@ -56,7 +56,7 @@ async function run() {
 
 	// The following syntax should be used in the ECMAScript environment
 	await importx(
-		`${dirname(import.meta.url)}/{Pokedex,Storage,Inventory,Database}.{ts,js}`,
+		`${dirname(import.meta.url)}/{Pokedex,Storage,Inventory,Database,Configuration}.{ts,js}`,
 	);
 
 	// Let's start the bot
