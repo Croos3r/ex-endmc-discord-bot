@@ -91,7 +91,7 @@ export class Inventory {
 	@Slash({ description: "View your inventory" })
 	async view(
 		@SlashOption({name: "user", description: "User to view the inventory of", required: false, type: ApplicationCommandOptionType.User})
-			user: User | null,
+			user: User | undefined,
 		interaction: CommandInteraction
 	) {
 		const targetUser = user ?? interaction.user
@@ -103,7 +103,7 @@ export class Inventory {
 		@SlashOption({name: "stored-pokemon-id", description: "Stored ID of the Pokemon to add to the inventory", required: true, type: ApplicationCommandOptionType.Number})
 			pokemon: number,
 		@SlashOption({name: "user", description: "User to add the pokemon to", required: false, type: ApplicationCommandOptionType.User})
-			user: User | null,
+			user: User | undefined,
 		interaction: CommandInteraction
 	) {
 		const targetUser = user ?? interaction.user
@@ -128,7 +128,7 @@ export class Inventory {
 		@SlashOption({name: "held-pokemon-id", description: "Held ID of the Pokemon to remove from the inventory", required: true, type: ApplicationCommandOptionType.Number})
 			pokemon: number,
 		@SlashOption({name: "user", description: "User to remove the pokemon from", required: false, type: ApplicationCommandOptionType.User})
-			user: User | null,
+			user: User | undefined,
 		interaction: CommandInteraction
 	) {
 		const targetUser = user ?? interaction.user
