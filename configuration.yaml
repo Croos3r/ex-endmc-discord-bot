@@ -6,7 +6,7 @@ leveling:
   # In seonds
   experienceGainCooldow: 10
   # Formula: level variabble can be used
-  experiencePerMessage: 1 / level * 10
+  experiencePerMessage: "60"
   # Formula: level variabble can be used
   experiencePerLevel: level * 100
   pointsAbilityPerLevel:
