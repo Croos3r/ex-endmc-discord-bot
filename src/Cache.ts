@@ -13,7 +13,7 @@ export async function invalidateCache(key: string): Promise<void> {
 export async function getCachedByIdOrCacheResult<T>(
 	key: string,
 	fetcherFunction: () => Promise<T>,
-	expireInSeconds = 60 * 60 * 24 * 7 /* One week */,
+	expireInSeconds = 60 * 60 * 24 * 7, // One week
 ): Promise<T> {
 	const cachedResult = await REDIS_INSTANCE.get(key);
 

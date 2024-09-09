@@ -33,7 +33,8 @@ bot.once("ready", async () => {
 	await bot.guilds.fetch();
 
 	// Synchronize applications commands with Discord
-	void bot.initApplicationCommands();
+	// noinspection ES6MissingAwait: No need to await this
+	bot.initApplicationCommands();
 
 	// To clear all guild commands, uncomment this line,
 	// This is useful when moving from guild commands to global commands

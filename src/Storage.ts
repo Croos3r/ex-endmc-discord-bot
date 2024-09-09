@@ -15,6 +15,7 @@ import { CONFIGURATION } from './Configuration.js'
 import DATA_SOURCE from './Database.js'
 import { getPokemonDetails } from './PokeAPI.js'
 import Pokemon from './entities/Pokemon.js'
+import { POKEMON_MAX_STAT_VALUE, POKEMON_STAT_PROGRESS_BAR_SIZE } from './helpers/constants.js'
 
 @Discord()
 @SlashGroup({ name: 'pc', description: 'PC commands' })
@@ -45,7 +46,7 @@ export class Storage {
 		return getCachedByIdOrCacheResult(`pc:max-page:${targetUser.id}`, async () => {
 			const pokemons = DATA_SOURCE.getRepository(Pokemon)
 			const count = await pokemons.count({where: {storedBy: targetUser.id}})
-			return Math.ceil(count / 24)
+			return Math.ceil(count / CONFIGURATION.storage.pokemonsPerPage)
 		})
 	}
 
@@ -109,7 +110,7 @@ export class Storage {
 
 	static async getPCPagePokemons(targetUser: User, pageNumber: number) {
 		const pokemons = DATA_SOURCE.getRepository(Pokemon)
-		const targetUsersPokemons = await pokemons.find({where: {storedBy: targetUser.id}, skip: pageNumber ? (pageNumber - 1) * 24 : 0, take: 24, order: {id: 'asc'}})
+		const targetUsersPokemons = await pokemons.find({where: {storedBy: targetUser.id}, skip: pageNumber ? (pageNumber - 1) * CONFIGURATION.storage.pokemonsPerPage : 0, take: CONFIGURATION.storage.pokemonsPerPage, order: {id: 'asc'}})
 
 		if (targetUsersPokemons.length === 0) return []
 
@@ -132,6 +133,7 @@ export class Storage {
 			})
 
 		if (pokemonDetails === 'unknown' || pokemonDetails === 'error') return {content: `Pokemon #${pokemon.pokeAPIId} not found`}
+		// noinspection JSUnusedLocalSymbols: level is destructured to allow the configuration to use it and to be evaluated
 		const {level, health, attack, defense, specialAttack, specialDefense, speed} = pokemon
 		const stats = [health, attack, defense, specialAttack, specialDefense, speed]
 		return {
@@ -141,7 +143,10 @@ export class Storage {
 					.setTitle(`${pokemonDetails.name} (No. ${pokemon.id}/#${pokemon.pokeAPIId})`)
 					// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
 					.setDescription(`Level: ${pokemon.level} (${pokemon.experience}/${eval(CONFIGURATION.leveling.experiencePerLevel)})
-					${pokemonDetails.stats.map(({name}, index) => `**${name}** (${stats[index]})\n\`${"#".repeat(stats[index]/255*30)}${"-".repeat(30-stats[index]/255*30)}\``).join("\n")}`)
+					${pokemonDetails.stats.map(
+						({name}, index) => 
+							`**${name}** (${stats[index]})\n\`${"#".repeat(stats[index]/POKEMON_MAX_STAT_VALUE*POKEMON_STAT_PROGRESS_BAR_SIZE)}${"-".repeat(POKEMON_STAT_PROGRESS_BAR_SIZE-stats[index]/POKEMON_MAX_STAT_VALUE*POKEMON_STAT_PROGRESS_BAR_SIZE)}\``).join("\n")}`
+					)
 			],
 			components: [
 				new ActionRowBuilder<MessageActionRowComponentBuilder>({

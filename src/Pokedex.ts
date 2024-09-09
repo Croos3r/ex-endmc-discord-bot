@@ -11,6 +11,7 @@ import {
 import { ButtonComponent, Discord, Slash, SlashGroup, SlashOption } from 'discordx'
 import { getCachedByIdOrCacheResult } from './Cache.js'
 import { type PokemonDetails, getPokemonDetails } from './PokeAPI.js'
+import { POKEMON_MAX_STAT_VALUE, POKEMON_STAT_PROGRESS_BAR_SIZE } from './helpers/constants.js'
 
 @Discord()
 @SlashGroup({ name: "pokedex", description: "Pokedex commands" })
@@ -92,7 +93,7 @@ export class Pokedex {
 					.setTitle(`${pokemonDetails.name} | #${pokemonDetails.id}`)
 					.setDescription(`
 					\`📜\` **Base Stats**
-					${pokemonDetails.stats.map(({name, stat}) => `**${name}** (${stat})\n\`${"#".repeat(stat/255*30)}${"-".repeat(30-stat/255*30)}\``).join("\n")}
+					${pokemonDetails.stats.map(({name, stat}) => `**${name}** (${stat})\n\`${"#".repeat(stat/POKEMON_MAX_STAT_VALUE*POKEMON_STAT_PROGRESS_BAR_SIZE)}${"-".repeat(POKEMON_STAT_PROGRESS_BAR_SIZE-stat/POKEMON_STAT_PROGRESS_BAR_SIZE*POKEMON_STAT_PROGRESS_BAR_SIZE)}\``).join("\n")}
 					`)
 			],
 			components: [

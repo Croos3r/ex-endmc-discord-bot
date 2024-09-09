@@ -61,7 +61,7 @@ export class Inventory {
 							value: `${pokemon.id}. ${pokemon.name} (#${pokemon.pokeAPIId})`,
 						}
 					})))
-					.addFields(Array(CONFIGURATION.inventory.size - inventoryPokemons.length).fill(1).map((slot, index) => {
+					.addFields(Array(CONFIGURATION.inventory.size - inventoryPokemons.length).fill(1).map((_, index) => {
 						const slotNumber = inventoryPokemons.length + index + 1
 						return {
 							name: `Slot ${slotNumber}`,
