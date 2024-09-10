@@ -13,5 +13,9 @@
 		"parser": {
 			"unsafeParameterDecoratorsEnabled": true
 		}
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab"
 	}
 }

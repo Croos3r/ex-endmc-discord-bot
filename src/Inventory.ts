@@ -270,8 +270,8 @@ export class Inventory {
 						experience,
 						level,
 					});
-					// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
 					experience += Math.ceil(
+						// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
 						eval(CONFIGURATION.leveling.experiencePerMessage),
 					);
 					let stats = [
@@ -282,9 +282,9 @@ export class Inventory {
 						specialDefense,
 						speed,
 					];
-					// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
 					if (
 						experience >=
+						// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
 						Math.ceil(eval(CONFIGURATION.leveling.experiencePerLevel))
 					) {
 						experience = 0;
