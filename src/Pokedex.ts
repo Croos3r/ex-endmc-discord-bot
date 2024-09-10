@@ -7,11 +7,20 @@ import {
 	type CommandInteraction,
 	EmbedBuilder,
 	type MessageActionRowComponentBuilder,
-} from 'discord.js'
-import { ButtonComponent, Discord, Slash, SlashGroup, SlashOption } from 'discordx'
-import { getCachedByIdOrCacheResult } from './Cache.js'
-import { type PokemonDetails, getPokemonDetails } from './PokeAPI.js'
-import { POKEMON_MAX_STAT_VALUE, POKEMON_STAT_PROGRESS_BAR_SIZE } from './helpers/constants.js'
+} from "discord.js";
+import {
+	ButtonComponent,
+	Discord,
+	Slash,
+	SlashGroup,
+	SlashOption,
+} from "discordx";
+import { getCachedByIdOrCacheResult } from "./Cache.js";
+import { type PokemonDetails, getPokemonDetails } from "./PokeAPI.js";
+import {
+	POKEMON_MAX_STAT_VALUE,
+	POKEMON_STAT_PROGRESS_BAR_SIZE,
+} from "./helpers/constants.js";
 
 @Discord()
 @SlashGroup({ name: "pokedex", description: "Pokedex commands" })
@@ -21,9 +30,11 @@ export class Pokedex {
 		return {
 			embeds: [
 				new EmbedBuilder()
-					.setColor('Red')
+					.setColor("Red")
 					.setThumbnail(pokemonDetails.spriteURL)
-					.setFooter({text: `HOME -> ${pokemonDetails.name} | #${pokemonDetails.id}`})
+					.setFooter({
+						text: `HOME -> ${pokemonDetails.name} | #${pokemonDetails.id}`,
+					})
 					.setTitle(`${pokemonDetails.name} | #${pokemonDetails.id}`)
 					.setDescription(`
 					\`📜\` **About**
@@ -36,7 +47,7 @@ export class Pokedex {
 					
 					\`🥚\` **Egg Groups**
 					**Egg Groups** ${pokemonDetails.eggGroups.length > 0 ? pokemonDetails.eggGroups.join(", ") : "Unknown"}
-					`)
+					`),
 			],
 			components: [
 				new ActionRowBuilder<MessageActionRowComponentBuilder>({
@@ -45,11 +56,11 @@ export class Pokedex {
 							.setLabel("BASE STATS")
 							.setEmoji("➡")
 							.setStyle(ButtonStyle.Primary)
-							.setCustomId(`base-stats-${pokemonDetails.id}`)
-					]
-				})
-			]
-		}
+							.setCustomId(`base-stats-${pokemonDetails.id}`),
+					],
+				}),
+			],
+		};
 	}
 
 	@Slash({ description: "Get a pokemon details" })
@@ -58,43 +69,56 @@ export class Pokedex {
 			name: "pokemon-name-or-id",
 			description: "Pokemon's name or id",
 			type: ApplicationCommandOptionType.String,
-			required: true
+			required: true,
 		})
 		pokemonName: string,
-		interaction: CommandInteraction
+		interaction: CommandInteraction,
 	) {
-		const lowerCaseURLEncodedPokemonName = encodeURIComponent(pokemonName.toLowerCase())
-		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${lowerCaseURLEncodedPokemonName}`, () => getPokemonDetails(lowerCaseURLEncodedPokemonName)).catch(error => {
+		const lowerCaseURLEncodedPokemonName = encodeURIComponent(
+			pokemonName.toLowerCase(),
+		);
+		const pokemonDetails = await getCachedByIdOrCacheResult(
+			`pokemon:${lowerCaseURLEncodedPokemonName}`,
+			() => getPokemonDetails(lowerCaseURLEncodedPokemonName),
+		).catch((error) => {
 			if (error.response?.status !== 404) {
-				console.log(error)
-				return 'error' as const
+				console.log(error);
+				return "error" as const;
 			}
-			return 'unknown' as const
-		})
+			return "unknown" as const;
+		});
 
-		if (pokemonDetails === 'unknown') return await interaction.reply('Unknown pokemon')
-		if (pokemonDetails === 'error') return await interaction.reply('An error occurred')
+		if (pokemonDetails === "unknown")
+			return await interaction.reply("Unknown pokemon");
+		if (pokemonDetails === "error")
+			return await interaction.reply("An error occurred");
 		await interaction.reply({
-			ephemeral: true, ...Pokedex.homeEmbedAndComponents(pokemonDetails),
-		})
+			ephemeral: true,
+			...Pokedex.homeEmbedAndComponents(pokemonDetails),
+		});
 	}
 
-	@ButtonComponent({id: /base-stats-\d+/})
+	@ButtonComponent({ id: /base-stats-\d+/ })
 	async baseStats(interaction: ButtonInteraction): Promise<void> {
-		const pokemonId = interaction.customId.split("-")[2]
-		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${pokemonId}`, () => getPokemonDetails(pokemonId))
+		const pokemonId = interaction.customId.split("-")[2];
+		const pokemonDetails = await getCachedByIdOrCacheResult(
+			`pokemon:${pokemonId}`,
+			() => getPokemonDetails(pokemonId),
+		);
 
 		await interaction.update({
 			embeds: [
 				new EmbedBuilder()
-					.setColor('Red')
+					.setColor("Red")
 					.setThumbnail(pokemonDetails.spriteURL)
-					.setFooter({text: `BASE STATS -> ${pokemonDetails.name} | #${pokemonDetails.id}`})
+					.setFooter({
+						text: `BASE STATS -> ${pokemonDetails.name} | #${pokemonDetails.id}`,
+					})
 					.setTitle(`${pokemonDetails.name} | #${pokemonDetails.id}`)
 					.setDescription(`
 					\`📜\` **Base Stats**
-					${pokemonDetails.stats.map(({name, stat}) => `**${name}** (${stat})\n\`${"#".repeat(stat/POKEMON_MAX_STAT_VALUE*POKEMON_STAT_PROGRESS_BAR_SIZE)}${"-".repeat(POKEMON_STAT_PROGRESS_BAR_SIZE-stat/POKEMON_STAT_PROGRESS_BAR_SIZE*POKEMON_STAT_PROGRESS_BAR_SIZE)}\``).join("\n")}
-					`)
+					${pokemonDetails.stats.map(({ name, stat }) => `**${name}** (${stat})\n\`${"#".repeat((stat / POKEMON_MAX_STAT_VALUE) * POKEMON_STAT_PROGRESS_BAR_SIZE)}${"-".repeat(POKEMON_STAT_PROGRESS_BAR_SIZE - (stat / POKEMON_STAT_PROGRESS_BAR_SIZE) * POKEMON_STAT_PROGRESS_BAR_SIZE)}\``).join("\n")}
+					`),
 			],
 			components: [
 				new ActionRowBuilder<MessageActionRowComponentBuilder>({
@@ -103,20 +127,24 @@ export class Pokedex {
 							.setLabel("ABOUT")
 							.setEmoji("⬅")
 							.setStyle(ButtonStyle.Primary)
-							.setCustomId(`home-${pokemonDetails.id}`)
-					]
-				})
-			]
-		})
+							.setCustomId(`home-${pokemonDetails.id}`),
+					],
+				}),
+			],
+		});
 	}
 
-	@ButtonComponent({id: /home-\d+/})
+	@ButtonComponent({ id: /home-\d+/ })
 	async home(interaction: ButtonInteraction): Promise<void> {
-		const pokemonId = interaction.customId.split("-")[1]
-		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${pokemonId}`, () => getPokemonDetails(pokemonId))
+		const pokemonId = interaction.customId.split("-")[1];
+		const pokemonDetails = await getCachedByIdOrCacheResult(
+			`pokemon:${pokemonId}`,
+			() => getPokemonDetails(pokemonId),
+		);
 
 		await interaction.reply({
-			ephemeral: true, ...Pokedex.homeEmbedAndComponents(pokemonDetails),
-		})
+			ephemeral: true,
+			...Pokedex.homeEmbedAndComponents(pokemonDetails),
+		});
 	}
 }

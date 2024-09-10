@@ -1,5 +1,5 @@
-import { DataSource } from 'typeorm'
-import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
+import { DataSource } from "typeorm";
+import { SnakeNamingStrategy } from "typeorm-naming-strategies";
 
 export const DATA_SOURCE = new DataSource({
 	type: "postgres",

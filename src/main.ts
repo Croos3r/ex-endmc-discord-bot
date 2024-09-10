@@ -1,9 +1,9 @@
-import { dirname, importx } from '@discordx/importer'
-import type { Interaction } from 'discord.js'
-import { IntentsBitField } from 'discord.js'
-import { Client } from 'discordx'
-import { configDotenv } from 'dotenv'
-import 'reflect-metadata'
+import { dirname, importx } from "@discordx/importer";
+import type { Interaction } from "discord.js";
+import { IntentsBitField } from "discord.js";
+import { Client } from "discordx";
+import { configDotenv } from "dotenv";
+import "reflect-metadata";
 
 configDotenv({ path: ".env" });
 

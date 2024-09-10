@@ -1,6 +1,6 @@
-import { readFile } from 'node:fs/promises'
-import { parse } from 'yaml'
-import { z } from 'zod'
+import { readFile } from "node:fs/promises";
+import { parse } from "yaml";
+import { z } from "zod";
 
 const PointsAbilityPerLevelSchema = z
 	.object({
