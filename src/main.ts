@@ -1,9 +1,9 @@
-import { dirname, importx } from "@discordx/importer";
-import type { Interaction } from "discord.js";
-import { IntentsBitField } from "discord.js";
-import { Client } from "discordx";
-import { configDotenv } from "dotenv";
-import "reflect-metadata";
+import { dirname, importx } from '@discordx/importer'
+import type { Interaction } from 'discord.js'
+import { IntentsBitField } from 'discord.js'
+import { Client } from 'discordx'
+import { configDotenv } from 'dotenv'
+import 'reflect-metadata'
 
 configDotenv({ path: ".env" });
 
@@ -56,7 +56,7 @@ async function run() {
 	// await importx(__dirname + '/{events,commands}/**/*.{ts,js}')
 
 	// The following syntax should be used in the ECMAScript environment
-	await importx(`${dirname(import.meta.url)}/{Pokedex,Storage,Inventory,Database,Configuration}.{ts,js}`);
+	await importx(`${dirname(import.meta.url)}/**/*.controller.{ts,js}`);
 
 	// Let's start the bot
 	if (!process.env.BOT_TOKEN) {
