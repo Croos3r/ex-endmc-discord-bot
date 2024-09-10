@@ -1,5 +1,5 @@
-import { getCachedByIdOrCacheResult } from '../cache.service.js'
-import * as PokeAPI from '../poke-api.service.js'
+import { getCachedByIdOrCacheResult } from "../cache.service.js";
+import * as PokeAPI from "../poke-api.service.js";
 
 export async function getPokemonDetails(pokemonName: string) {
 	return await getCachedByIdOrCacheResult(`pokemon:${pokemonName}`, () => PokeAPI.getPokemonDetails(pokemonName)).catch(

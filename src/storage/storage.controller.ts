@@ -1,6 +1,6 @@
-import { ApplicationCommandOptionType, type ButtonInteraction, type CommandInteraction, type User } from 'discord.js'
-import { ButtonComponent, Discord, Slash, SlashGroup, SlashOption } from 'discordx'
-import { getCachedByIdOrCacheResult } from '../cache.service.js'
+import { ApplicationCommandOptionType, type ButtonInteraction, type CommandInteraction, type User } from "discord.js";
+import { ButtonComponent, Discord, Slash, SlashGroup, SlashOption } from "discordx";
+import { getCachedByIdOrCacheResult } from "../cache.service.js";
 import {
 	createContentMessage,
 	createEmptyPCMessage,
@@ -8,9 +8,9 @@ import {
 	createEphemeralMessage,
 	createPCPageMessage,
 	createPCPokemonViewMessage,
-} from '../helpers/ui.js'
-import { getPokemonDetails } from '../poke-api.service.js'
-import { createPokemon, getPCMaxPage, getPCPagePokemons, getStoredPokemon, removePokemon } from './storage.service.js'
+} from "../helpers/ui.js";
+import { getPokemonDetails } from "../poke-api.service.js";
+import { createPokemon, getPCMaxPage, getPCPagePokemons, getStoredPokemon, removePokemon } from "./storage.service.js";
 
 @Discord()
 @SlashGroup({ name: "pc", description: "PC commands" })

@@ -7,11 +7,11 @@ import {
 	type InteractionReplyOptions,
 	type MessageActionRowComponentBuilder,
 	type User,
-} from 'discord.js'
-import { CONFIGURATION } from '../configuration.service.js'
-import type Pokemon from '../entities/Pokemon.js'
-import type { PokemonDetails } from '../poke-api.service.js'
-import { POKEMON_MAX_STAT_VALUE, POKEMON_STAT_PROGRESS_BAR_SIZE } from './constants.js'
+} from "discord.js";
+import { CONFIGURATION } from "../configuration.service.js";
+import type Pokemon from "../entities/Pokemon.js";
+import type { PokemonDetails } from "../poke-api.service.js";
+import { POKEMON_MAX_STAT_VALUE, POKEMON_STAT_PROGRESS_BAR_SIZE } from "./constants.js";
 
 export function createContentMessage(content: string) {
 	return { content };

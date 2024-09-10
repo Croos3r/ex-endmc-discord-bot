@@ -1,12 +1,12 @@
-import { ApplicationCommandOptionType, type ButtonInteraction, type CommandInteraction } from 'discord.js'
-import { ButtonComponent, Discord, Slash, SlashGroup, SlashOption } from 'discordx'
+import { ApplicationCommandOptionType, type ButtonInteraction, type CommandInteraction } from "discord.js";
+import { ButtonComponent, Discord, Slash, SlashGroup, SlashOption } from "discordx";
 import {
 	createEphemeralContentMessage,
 	createEphemeralMessage,
 	createPokedexBaseStatsPokemonMessage,
 	createPokedexPokemonHomeMessage,
-} from '../helpers/ui.js'
-import { getPokemonDetails } from './pokedex.service.js'
+} from "../helpers/ui.js";
+import { getPokemonDetails } from "./pokedex.service.js";
 
 @Discord()
 @SlashGroup({ name: "pokedex", description: "Pokedex commands" })

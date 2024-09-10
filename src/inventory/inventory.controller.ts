@@ -1,12 +1,12 @@
-import { ApplicationCommandOptionType, type ButtonInteraction, type CommandInteraction, type User } from 'discord.js'
-import { type ArgsOf, ButtonComponent, Discord, On, Slash, SlashGroup, SlashOption } from 'discordx'
+import { ApplicationCommandOptionType, type ButtonInteraction, type CommandInteraction, type User } from "discord.js";
+import { type ArgsOf, ButtonComponent, Discord, On, Slash, SlashGroup, SlashOption } from "discordx";
 import {
 	createEmptyInventoryMessage,
 	createEphemeralContentMessage,
 	createEphemeralMessage,
 	createInventoryMessage,
-} from '../helpers/ui.js'
-import { getDatabasePokemonDetails, getStoredPokemon, setPokemonStored } from '../storage/storage.service.js'
+} from "../helpers/ui.js";
+import { getDatabasePokemonDetails, getStoredPokemon, setPokemonStored } from "../storage/storage.service.js";
 import {
 	getHeldPokemon,
 	getInventoryPokemons,
@@ -15,7 +15,7 @@ import {
 	setExperienceCooldown,
 	setPokemonHeld,
 	updateAllHeldPokemonsExperienceAndStats,
-} from './inventory.service.js'
+} from "./inventory.service.js";
 
 @Discord()
 @SlashGroup({

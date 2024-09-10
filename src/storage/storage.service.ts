@@ -1,9 +1,9 @@
-import type { User } from 'discord.js'
-import { getCachedByIdOrCacheResult, invalidateCache } from '../cache.service.js'
-import { CONFIGURATION } from '../configuration.service.js'
-import DATA_SOURCE from '../database.service.js'
-import Pokemon from '../entities/Pokemon.js'
-import { type PokemonDetails, getPokemonDetails } from '../poke-api.service.js'
+import type { User } from "discord.js";
+import { getCachedByIdOrCacheResult, invalidateCache } from "../cache.service.js";
+import { CONFIGURATION } from "../configuration.service.js";
+import DATA_SOURCE from "../database.service.js";
+import Pokemon from "../entities/Pokemon.js";
+import { type PokemonDetails, getPokemonDetails } from "../poke-api.service.js";
 
 export async function getDatabasePokemonDetails(storedPokemon: Pokemon) {
 	const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${storedPokemon.pokeAPIId.toString()}`, () =>
