@@ -9,27 +9,14 @@ import {
 	type MessageActionRowComponentBuilder,
 	type User,
 } from "discord.js";
-import {
-	ButtonComponent,
-	Discord,
-	Slash,
-	SlashGroup,
-	SlashOption,
-} from "discordx";
+import { ButtonComponent, Discord, Slash, SlashGroup, SlashOption } from "discordx";
 import { getCachedByIdOrCacheResult, invalidateCache } from "./Cache.js";
 import { CONFIGURATION } from "./Configuration.js";
 import DATA_SOURCE from "./Database.js";
 import { getPokemonDetails } from "./PokeAPI.js";
 import Pokemon from "./entities/Pokemon.js";
-import {
-	POKEMON_MAX_STAT_VALUE,
-	POKEMON_STAT_PROGRESS_BAR_SIZE,
-} from "./helpers/constants.js";
-import {
-	createEmptyPCMessage,
-	createPCPageMessage,
-	createPCPageNotFoundMessage,
-} from "./helpers/ui.js";
+import { POKEMON_MAX_STAT_VALUE, POKEMON_STAT_PROGRESS_BAR_SIZE } from "./helpers/constants.js";
+import { createEmptyPCMessage, createPCPageMessage, createPCPageNotFoundMessage } from "./helpers/ui.js";
 
 @Discord()
 @SlashGroup({ name: "pc", description: "PC commands" })
@@ -37,9 +24,8 @@ import {
 @SlashGroup("storage", "pc")
 export class Storage {
 	public static async getDatabasePokemonDetails(storedPokemon: Pokemon) {
-		const pokemonDetails = await getCachedByIdOrCacheResult(
-			`pokemon:${storedPokemon.pokeAPIId.toString()}`,
-			() => getPokemonDetails(storedPokemon.pokeAPIId.toString()),
+		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${storedPokemon.pokeAPIId.toString()}`, () =>
+			getPokemonDetails(storedPokemon.pokeAPIId.toString()),
 		).catch((error) => {
 			if (error.response?.status !== 404) {
 				console.error(
@@ -51,35 +37,20 @@ export class Storage {
 			return "unknown" as const;
 		});
 
-		if (pokemonDetails === "unknown" || pokemonDetails === "error")
-			return {
-				...storedPokemon,
-				error: pokemonDetails,
-			};
-		return {
-			...storedPokemon,
-			name: pokemonDetails.name,
-		};
+		if (pokemonDetails === "unknown" || pokemonDetails === "error") return { ...storedPokemon, error: pokemonDetails };
+		return { ...storedPokemon, name: pokemonDetails.name };
 	}
 
 	static async getPCMaxPage(targetUser: User) {
-		return getCachedByIdOrCacheResult(
-			`pc:max-page:${targetUser.id}`,
-			async () => {
-				const pokemons = DATA_SOURCE.getRepository(Pokemon);
-				const count = await pokemons.count({
-					where: { storedBy: targetUser.id },
-				});
-				return Math.ceil(count / CONFIGURATION.storage.pokemonsPerPage);
-			},
-		);
+		return getCachedByIdOrCacheResult(`pc:max-page:${targetUser.id}`, async () => {
+			const pokemons = DATA_SOURCE.getRepository(Pokemon);
+			const count = await pokemons.count({ where: { storedBy: targetUser.id } });
+			return Math.ceil(count / CONFIGURATION.storage.pokemonsPerPage);
+		});
 	}
 
 	static async getPCPageComponents(targetUser: User, pageNumber: number) {
-		const pcPagePokemons = await Storage.getPCPagePokemons(
-			targetUser,
-			pageNumber,
-		);
+		const pcPagePokemons = await Storage.getPCPagePokemons(targetUser, pageNumber);
 		const maxPage = await Storage.getPCMaxPage(targetUser);
 		if (maxPage === 0) return createEmptyPCMessage(targetUser);
 		if (pageNumber > maxPage) return createPCPageNotFoundMessage(pageNumber);
@@ -89,24 +60,18 @@ export class Storage {
 	static async getPCPagePokemons(
 		targetUser: User,
 		pageNumber: number,
-	): Promise<
-		Array<Pokemon & ({ error: "unknown" | "error" } | { name: string })>
-	> {
+	): Promise<Array<Pokemon & ({ error: "unknown" | "error" } | { name: string })>> {
 		const pokemons = DATA_SOURCE.getRepository(Pokemon);
 		const targetUsersPokemons = await pokemons.find({
 			where: { storedBy: targetUser.id },
-			skip: pageNumber
-				? (pageNumber - 1) * CONFIGURATION.storage.pokemonsPerPage
-				: 0,
+			skip: pageNumber ? (pageNumber - 1) * CONFIGURATION.storage.pokemonsPerPage : 0,
 			take: CONFIGURATION.storage.pokemonsPerPage,
 			order: { id: "asc" },
 		});
 
 		if (targetUsersPokemons.length === 0) return [];
 
-		return await Promise.all(
-			targetUsersPokemons.map(Storage.getDatabasePokemonDetails),
-		);
+		return await Promise.all(targetUsersPokemons.map(Storage.getDatabasePokemonDetails));
 	}
 
 	static async getPokemonViewComponents(targetUser: User, pokemonId: number) {
@@ -123,9 +88,8 @@ export class Storage {
 				ephemeral: true,
 			};
 
-		const pokemonDetails = await getCachedByIdOrCacheResult(
-			`pokemon:${pokemon.pokeAPIId}`,
-			() => getPokemonDetails(pokemon.pokeAPIId.toString()),
+		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${pokemon.pokeAPIId}`, () =>
+			getPokemonDetails(pokemon.pokeAPIId.toString()),
 		).catch((error) => {
 			if (error.response?.status !== 404) {
 				console.error(
@@ -140,30 +104,13 @@ export class Storage {
 		if (pokemonDetails === "unknown" || pokemonDetails === "error")
 			return { content: `Pokemon #${pokemon.pokeAPIId} not found` };
 		// noinspection JSUnusedLocalSymbols: level is destructured to allow the configuration to use it and to be evaluated
-		const {
-			level,
-			health,
-			attack,
-			defense,
-			specialAttack,
-			specialDefense,
-			speed,
-		} = pokemon;
-		const stats = [
-			health,
-			attack,
-			defense,
-			specialAttack,
-			specialDefense,
-			speed,
-		];
+		const { level, health, attack, defense, specialAttack, specialDefense, speed } = pokemon;
+		const stats = [health, attack, defense, specialAttack, specialDefense, speed];
 		return {
 			content: "",
 			embeds: [
 				new EmbedBuilder()
-					.setTitle(
-						`${pokemonDetails.name} (No. ${pokemon.id}/#${pokemon.pokeAPIId})`,
-					)
+					.setTitle(`${pokemonDetails.name} (No. ${pokemon.id}/#${pokemon.pokeAPIId})`)
 					// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
 					.setDescription(`Level: ${pokemon.level} (${pokemon.experience}/${eval(CONFIGURATION.leveling.experiencePerLevel)})
 					${pokemonDetails.stats
@@ -191,15 +138,8 @@ export class Storage {
 	async viewPokemon(interaction: ButtonInteraction) {
 		const [pokemonId, userId] = interaction.customId.split("-").slice(2);
 		const targetUser = await interaction.client.users.fetch(userId);
-		if (!targetUser)
-			return await interaction.reply({
-				content: "User not found",
-				ephemeral: true,
-			});
-		const pokemonViewComponents = await Storage.getPokemonViewComponents(
-			targetUser,
-			Number.parseInt(pokemonId),
-		);
+		if (!targetUser) return await interaction.reply({ content: "User not found", ephemeral: true });
+		const pokemonViewComponents = await Storage.getPokemonViewComponents(targetUser, Number.parseInt(pokemonId));
 
 		await interaction.update(pokemonViewComponents);
 	}
@@ -208,23 +148,13 @@ export class Storage {
 	async viewPCPage(interaction: ButtonInteraction) {
 		const [pageNumber, userId] = interaction.customId.split("-").slice(2);
 		const targetUser = await interaction.client.users.fetch(userId);
-		if (!targetUser)
-			return await interaction.reply({
-				content: "User not found",
-				ephemeral: true,
-			});
-		const pcPageComponents = await Storage.getPCPageComponents(
-			targetUser,
-			Number.parseInt(pageNumber),
-		);
+		if (!targetUser) return await interaction.reply({ content: "User not found", ephemeral: true });
+		const pcPageComponents = await Storage.getPCPageComponents(targetUser, Number.parseInt(pageNumber));
 
 		await interaction.update(pcPageComponents);
 	}
 
-	@Slash({
-		description:
-			"View an user's PC stored specific pokemon or list of pokemons",
-	})
+	@Slash({ description: "View an user's PC stored specific pokemon or list of pokemons" })
 	async view(
 		@SlashOption({
 			name: "user",
@@ -252,23 +182,14 @@ export class Storage {
 		const targetUser = user ?? interaction.user;
 
 		if (pokemonId === undefined) {
-			const pcPageComponents = await Storage.getPCPageComponents(
-				targetUser,
-				pageNumber ?? 1,
-			);
+			const pcPageComponents = await Storage.getPCPageComponents(targetUser, pageNumber ?? 1);
 
 			return await interaction.reply({ ephemeral: true, ...pcPageComponents });
 		}
 		console.log(JSON.stringify(pokemonId));
-		const pokemonViewCmponents = await Storage.getPokemonViewComponents(
-			targetUser,
-			pokemonId,
-		);
+		const pokemonViewCmponents = await Storage.getPokemonViewComponents(targetUser, pokemonId);
 
-		return await interaction.reply({
-			ephemeral: true,
-			...pokemonViewCmponents,
-		});
+		return await interaction.reply({ ephemeral: true, ...pokemonViewCmponents });
 	}
 
 	@Slash({ description: "Add a pokemon to an user's PC" })
@@ -290,12 +211,9 @@ export class Storage {
 		interaction: CommandInteraction,
 	) {
 		const targetUser = user ?? interaction.user;
-		const lowerCaseURLEncodedPokemonName = encodeURIComponent(
-			pokemonNameOrId.toLowerCase(),
-		);
-		const pokemonDetails = await getCachedByIdOrCacheResult(
-			`pokemon:${lowerCaseURLEncodedPokemonName}`,
-			() => getPokemonDetails(lowerCaseURLEncodedPokemonName),
+		const lowerCaseURLEncodedPokemonName = encodeURIComponent(pokemonNameOrId.toLowerCase());
+		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${lowerCaseURLEncodedPokemonName}`, () =>
+			getPokemonDetails(lowerCaseURLEncodedPokemonName),
 		).catch((error) => {
 			if (error.response?.status !== 404) {
 				console.error(
@@ -307,29 +225,19 @@ export class Storage {
 			return "unknown" as const;
 		});
 
-		if (pokemonDetails === "unknown")
-			return await interaction.reply("Unknown pokemon");
-		if (pokemonDetails === "error")
-			return await interaction.reply("An error occurred");
+		if (pokemonDetails === "unknown") return await interaction.reply("Unknown pokemon");
+		if (pokemonDetails === "error") return await interaction.reply("An error occurred");
 		const pokemons = DATA_SOURCE.getRepository(Pokemon);
 
 		const pokemon = pokemons.create({
 			pokeAPIId: pokemonDetails.id,
 			storedBy: targetUser.id,
-			health:
-				pokemonDetails.stats.find((stat) => stat.name === "HP")?.stat ?? 0,
-			attack:
-				pokemonDetails.stats.find((stat) => stat.name === "Attack")?.stat ?? 0,
-			defense:
-				pokemonDetails.stats.find((stat) => stat.name === "Defense")?.stat ?? 0,
-			specialAttack:
-				pokemonDetails.stats.find((stat) => stat.name === "Special-attack")
-					?.stat ?? 0,
-			specialDefense:
-				pokemonDetails.stats.find((stat) => stat.name === "Special-defense")
-					?.stat ?? 0,
-			speed:
-				pokemonDetails.stats.find((stat) => stat.name === "Speed")?.stat ?? 0,
+			health: pokemonDetails.stats.find((stat) => stat.name === "HP")?.stat ?? 0,
+			attack: pokemonDetails.stats.find((stat) => stat.name === "Attack")?.stat ?? 0,
+			defense: pokemonDetails.stats.find((stat) => stat.name === "Defense")?.stat ?? 0,
+			specialAttack: pokemonDetails.stats.find((stat) => stat.name === "Special-attack")?.stat ?? 0,
+			specialDefense: pokemonDetails.stats.find((stat) => stat.name === "Special-defense")?.stat ?? 0,
+			speed: pokemonDetails.stats.find((stat) => stat.name === "Speed")?.stat ?? 0,
 		});
 		await pokemons.save(pokemon);
 		await invalidateCache(`pc:max-page:${targetUser.id}`);
@@ -361,10 +269,7 @@ export class Storage {
 		const targetUser = user ?? interaction.user;
 		const pokemons = DATA_SOURCE.getRepository(Pokemon);
 
-		const pokemon = await pokemons.findOneBy({
-			id: pokemonPCId,
-			storedBy: targetUser.id,
-		});
+		const pokemon = await pokemons.findOneBy({ id: pokemonPCId, storedBy: targetUser.id });
 		if (!pokemon) {
 			await interaction.reply({
 				content: `Pokemon #${pokemonPCId} not found in **${targetUser.displayName}**'s PC`,

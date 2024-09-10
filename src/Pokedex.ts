@@ -8,19 +8,10 @@ import {
 	EmbedBuilder,
 	type MessageActionRowComponentBuilder,
 } from "discord.js";
-import {
-	ButtonComponent,
-	Discord,
-	Slash,
-	SlashGroup,
-	SlashOption,
-} from "discordx";
+import { ButtonComponent, Discord, Slash, SlashGroup, SlashOption } from "discordx";
 import { getCachedByIdOrCacheResult } from "./Cache.js";
 import { type PokemonDetails, getPokemonDetails } from "./PokeAPI.js";
-import {
-	POKEMON_MAX_STAT_VALUE,
-	POKEMON_STAT_PROGRESS_BAR_SIZE,
-} from "./helpers/constants.js";
+import { POKEMON_MAX_STAT_VALUE, POKEMON_STAT_PROGRESS_BAR_SIZE } from "./helpers/constants.js";
 
 @Discord()
 @SlashGroup({ name: "pokedex", description: "Pokedex commands" })
@@ -74,12 +65,9 @@ export class Pokedex {
 		pokemonName: string,
 		interaction: CommandInteraction,
 	) {
-		const lowerCaseURLEncodedPokemonName = encodeURIComponent(
-			pokemonName.toLowerCase(),
-		);
-		const pokemonDetails = await getCachedByIdOrCacheResult(
-			`pokemon:${lowerCaseURLEncodedPokemonName}`,
-			() => getPokemonDetails(lowerCaseURLEncodedPokemonName),
+		const lowerCaseURLEncodedPokemonName = encodeURIComponent(pokemonName.toLowerCase());
+		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${lowerCaseURLEncodedPokemonName}`, () =>
+			getPokemonDetails(lowerCaseURLEncodedPokemonName),
 		).catch((error) => {
 			if (error.response?.status !== 404) {
 				console.log(error);
@@ -88,10 +76,8 @@ export class Pokedex {
 			return "unknown" as const;
 		});
 
-		if (pokemonDetails === "unknown")
-			return await interaction.reply("Unknown pokemon");
-		if (pokemonDetails === "error")
-			return await interaction.reply("An error occurred");
+		if (pokemonDetails === "unknown") return await interaction.reply("Unknown pokemon");
+		if (pokemonDetails === "error") return await interaction.reply("An error occurred");
 		await interaction.reply({
 			ephemeral: true,
 			...Pokedex.homeEmbedAndComponents(pokemonDetails),
@@ -101,10 +87,7 @@ export class Pokedex {
 	@ButtonComponent({ id: /base-stats-\d+/ })
 	async baseStats(interaction: ButtonInteraction): Promise<void> {
 		const pokemonId = interaction.customId.split("-")[2];
-		const pokemonDetails = await getCachedByIdOrCacheResult(
-			`pokemon:${pokemonId}`,
-			() => getPokemonDetails(pokemonId),
-		);
+		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${pokemonId}`, () => getPokemonDetails(pokemonId));
 
 		await interaction.update({
 			embeds: [
@@ -137,10 +120,7 @@ export class Pokedex {
 	@ButtonComponent({ id: /home-\d+/ })
 	async home(interaction: ButtonInteraction): Promise<void> {
 		const pokemonId = interaction.customId.split("-")[1];
-		const pokemonDetails = await getCachedByIdOrCacheResult(
-			`pokemon:${pokemonId}`,
-			() => getPokemonDetails(pokemonId),
-		);
+		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${pokemonId}`, () => getPokemonDetails(pokemonId));
 
 		await interaction.reply({
 			ephemeral: true,

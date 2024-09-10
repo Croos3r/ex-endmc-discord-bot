@@ -6,10 +6,16 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"style": {
+				"useAsConstAssertion": "info"
+			}
 		}
 	},
 	"javascript": {
+		"formatter": {
+			"lineWidth": 120
+		},
 		"parser": {
 			"unsafeParameterDecoratorsEnabled": true
 		}

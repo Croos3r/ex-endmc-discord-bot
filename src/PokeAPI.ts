@@ -1,9 +1,6 @@
 import axios from "axios";
 
-const AXIOS_INSTANCE = axios.create({
-	baseURL: "https://pokeapi.co/api/v2/",
-	responseType: "json",
-});
+const AXIOS_INSTANCE = axios.create({ baseURL: "https://pokeapi.co/api/v2/", responseType: "json" });
 
 export type NamedAPIResource = {
 	name: string;
@@ -15,7 +12,10 @@ export type PokemonAbility = { ability: NamedAPIResource };
 export type PokemonType = NamedAPIResource;
 export type PokemonColor = NamedAPIResource;
 export type PokemonEggGroup = NamedAPIResource;
-export type PokemonStat = { stat: NamedAPIResource; base_stat: number };
+export type PokemonStat = {
+	stat: NamedAPIResource;
+	base_stat: number;
+};
 
 export type PokemonSpecies = NamedAPIResource & {
 	capture_rate: number;
@@ -47,9 +47,7 @@ export async function getPokemon(pokemonNameOrId: string): Promise<Pokemon> {
 	return response.data;
 }
 
-export async function getPokemonSpecies(
-	speciesName: string,
-): Promise<PokemonSpecies> {
+export async function getPokemonSpecies(speciesName: string): Promise<PokemonSpecies> {
 	const response = await AXIOS_INSTANCE.get(`pokemon-species/${speciesName}`);
 	return response.data;
 }
@@ -68,9 +66,7 @@ export type PokemonDetails = {
 	stats: Array<{ name: string; stat: number }>;
 };
 
-export async function getPokemonDetails(
-	pokemonNameOrId: string,
-): Promise<PokemonDetails> {
+export async function getPokemonDetails(pokemonNameOrId: string): Promise<PokemonDetails> {
 	const pokemon = await getPokemon(pokemonNameOrId);
 	const pokemonSpecies = await getPokemonSpecies(pokemon.species.name);
 	return {
@@ -78,18 +74,12 @@ export async function getPokemonDetails(
 		id: pokemon.id,
 		spriteURL: pokemon.sprites.front_default,
 		species: capitalizeFirstLetter(pokemonSpecies.name),
-		abilities: pokemon.abilities.map(({ ability: { name } }) =>
-			capitalizeFirstLetter(name),
-		),
+		abilities: pokemon.abilities.map(({ ability: { name } }) => capitalizeFirstLetter(name)),
 		color: capitalizeFirstLetter(pokemonSpecies.color.name),
 		captureRate: pokemonSpecies.capture_rate,
-		habitat: pokemonSpecies.habitat
-			? capitalizeFirstLetter(pokemonSpecies.habitat.name)
-			: null,
+		habitat: pokemonSpecies.habitat ? capitalizeFirstLetter(pokemonSpecies.habitat.name) : null,
 		types: pokemon.types.map((type) => capitalizeFirstLetter(type.type.name)),
-		eggGroups: pokemonSpecies.egg_groups.map((eggGroup) =>
-			capitalizeFirstLetter(eggGroup.name),
-		),
+		eggGroups: pokemonSpecies.egg_groups.map((eggGroup) => capitalizeFirstLetter(eggGroup.name)),
 		stats: pokemon.stats.map(({ stat: { name }, base_stat }) => ({
 			name: name === "hp" ? "HP" : capitalizeFirstLetter(name),
 			stat: base_stat,

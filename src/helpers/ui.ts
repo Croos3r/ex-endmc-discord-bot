@@ -34,9 +34,7 @@ export function createPCPageMessage(
 	user: User,
 	pageNumber: number,
 	maxPage: number,
-	pcPagePokemons: Array<
-		Pokemon & ({ error: "unknown" | "error" } | { name: string })
-	>,
+	pcPagePokemons: Array<Pokemon & ({ error: "unknown" | "error" } | { name: string })>,
 ) {
 	return {
 		embeds: [

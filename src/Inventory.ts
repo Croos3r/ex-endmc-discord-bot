@@ -9,21 +9,8 @@ import {
 	type MessageActionRowComponentBuilder,
 	type User,
 } from "discord.js";
-import {
-	type ArgsOf,
-	ButtonComponent,
-	Discord,
-	On,
-	Slash,
-	SlashGroup,
-	SlashOption,
-} from "discordx";
-import {
-	getCachedByIdOrCacheResult,
-	invalidateCache,
-	isDelayKeyActive,
-	setDelayKey,
-} from "./Cache.js";
+import { type ArgsOf, ButtonComponent, Discord, On, Slash, SlashGroup, SlashOption } from "discordx";
+import { getCachedByIdOrCacheResult, invalidateCache, isDelayKeyActive, setDelayKey } from "./Cache.js";
 import { CONFIGURATION } from "./Configuration.js";
 import DATA_SOURCE from "./Database.js";
 import { Storage } from "./Storage.js";
@@ -38,30 +25,23 @@ import Pokemon from "./entities/Pokemon.js";
 @SlashGroup("inventory", "pc")
 export class Inventory {
 	static async isInventoryFull(targetUser: User) {
-		return await getCachedByIdOrCacheResult(
-			`inventory:full:${targetUser.id}`,
-			async () => {
-				const pokemons = DATA_SOURCE.getRepository(Pokemon);
-				return (
-					(await pokemons.count({ where: { heldBy: targetUser.id } })) >=
-					CONFIGURATION.inventory.size
-				);
-			},
-		);
+		return await getCachedByIdOrCacheResult(`inventory:full:${targetUser.id}`, async () => {
+			const pokemons = DATA_SOURCE.getRepository(Pokemon);
+			return (await pokemons.count({ where: { heldBy: targetUser.id } })) >= CONFIGURATION.inventory.size;
+		});
 	}
 
 	static async getInventoryComponents(targetUser: User) {
 		const inventoryPokemons = await Inventory.getInventoryPokemons(targetUser);
-		const refreshButton =
-			new ActionRowBuilder<MessageActionRowComponentBuilder>({
-				components: [
-					new ButtonBuilder()
-						.setLabel("Refresh")
-						.setEmoji("🔃")
-						.setStyle(ButtonStyle.Secondary)
-						.setCustomId(`inventory-refresh-${targetUser.id}`),
-				],
-			});
+		const refreshButton = new ActionRowBuilder<MessageActionRowComponentBuilder>({
+			components: [
+				new ButtonBuilder()
+					.setLabel("Refresh")
+					.setEmoji("🔃")
+					.setStyle(ButtonStyle.Secondary)
+					.setCustomId(`inventory-refresh-${targetUser.id}`),
+			],
+		});
 		if (inventoryPokemons.length === 0)
 			return {
 				content: `${targetUser.displayName}'s inventory is empty.\n Use \`/pc inventory add\` to add pokemons`,
@@ -95,10 +75,7 @@ export class Inventory {
 							.fill(1)
 							.map((_, index) => {
 								const slotNumber = inventoryPokemons.length + index + 1;
-								return {
-									name: `Slot ${slotNumber}`,
-									value: "Empty",
-								};
+								return { name: `Slot ${slotNumber}`, value: "Empty" };
 							}),
 					),
 			],
@@ -114,16 +91,12 @@ export class Inventory {
 		});
 		if (targetUsersInventoryPokemons.length === 0) return [];
 
-		return await Promise.all(
-			targetUsersInventoryPokemons.map(Storage.getDatabasePokemonDetails),
-		);
+		return await Promise.all(targetUsersInventoryPokemons.map(Storage.getDatabasePokemonDetails));
 	}
 
 	@ButtonComponent({ id: /inventory-refresh-\d+/ })
 	async refreshInventoryButton(interaction: ButtonInteraction) {
-		await interaction.update({
-			...(await Inventory.getInventoryComponents(interaction.user)),
-		});
+		await interaction.update({ ...(await Inventory.getInventoryComponents(interaction.user)) });
 	}
 
 	@Slash({ description: "View your inventory" })
@@ -138,10 +111,7 @@ export class Inventory {
 		interaction: CommandInteraction,
 	) {
 		const targetUser = user ?? interaction.user;
-		await interaction.reply({
-			ephemeral: true,
-			...(await Inventory.getInventoryComponents(targetUser)),
-		});
+		await interaction.reply({ ephemeral: true, ...(await Inventory.getInventoryComponents(targetUser)) });
 	}
 
 	@Slash({ description: "Add a pokemon to your inventory" })
@@ -164,9 +134,7 @@ export class Inventory {
 	) {
 		const targetUser = user ?? interaction.user;
 		const pokemons = DATA_SOURCE.getRepository(Pokemon);
-		const pokemonToTransfer = await pokemons.findOne({
-			where: { id: pokemon, storedBy: targetUser.id },
-		});
+		const pokemonToTransfer = await pokemons.findOne({ where: { id: pokemon, storedBy: targetUser.id } });
 
 		if (!pokemonToTransfer)
 			return await interaction.reply({
@@ -174,17 +142,13 @@ export class Inventory {
 				content: `Pokemon not found in ${targetUser.displayName}'s PC`,
 			});
 		if (await Inventory.isInventoryFull(targetUser))
-			return await interaction.reply({
-				ephemeral: true,
-				content: "Your inventory is full",
-			});
+			return await interaction.reply({ ephemeral: true, content: "Your inventory is full" });
 		pokemonToTransfer.heldBy = targetUser.id;
 		pokemonToTransfer.storedBy = null;
 		await pokemons.save(pokemonToTransfer);
 		await invalidateCache(`pc:max-page:${targetUser.id}`);
 		await invalidateCache(`inventory:full:${targetUser.id}`);
-		const pokemonDetails =
-			await Storage.getDatabasePokemonDetails(pokemonToTransfer);
+		const pokemonDetails = await Storage.getDatabasePokemonDetails(pokemonToTransfer);
 		await interaction.reply({
 			ephemeral: true,
 			content: `Pokemon No ${pokemonToTransfer.id} (Level ${pokemonToTransfer.level} ${"error" in pokemonDetails ? "Unknown" : pokemonDetails.name} (#${pokemonDetails.pokeAPIId})) added to your inventory`,
@@ -211,9 +175,7 @@ export class Inventory {
 	) {
 		const targetUser = user ?? interaction.user;
 		const pokemons = DATA_SOURCE.getRepository(Pokemon);
-		const pokemonToTransfer = await pokemons.findOne({
-			where: { id: pokemon, heldBy: targetUser.id },
-		});
+		const pokemonToTransfer = await pokemons.findOne({ where: { id: pokemon, heldBy: targetUser.id } });
 
 		if (!pokemonToTransfer)
 			return await interaction.reply({
@@ -225,8 +187,7 @@ export class Inventory {
 		await pokemons.save(pokemonToTransfer);
 		await invalidateCache(`pc:max-page:${targetUser.id}`);
 		await invalidateCache(`inventory:full:${targetUser.id}`);
-		const pokemonDetails =
-			await Storage.getDatabasePokemonDetails(pokemonToTransfer);
+		const pokemonDetails = await Storage.getDatabasePokemonDetails(pokemonToTransfer);
 		await interaction.reply({
 			ephemeral: true,
 			content: `Pokemon No ${pokemonToTransfer.id} (Level ${pokemonToTransfer.level} ${"error" in pokemonDetails ? "Unknown" : pokemonDetails.name} (#${pokemonDetails.pokeAPIId})) removed from your inventory`,
@@ -238,15 +199,10 @@ export class Inventory {
 		if (message.author.bot) return;
 		const user = message.author;
 
-		const isExperiencedDelayed = await isDelayKeyActive(
-			`experience-delay:${user.id}`,
-		);
+		const isExperiencedDelayed = await isDelayKeyActive(`experience-delay:${user.id}`);
 
 		if (isExperiencedDelayed) return;
-		await setDelayKey(
-			`experience-delay:${user.id}`,
-			CONFIGURATION.leveling.experienceGainCooldown,
-		);
+		await setDelayKey(`experience-delay:${user.id}`, CONFIGURATION.leveling.experienceGainCooldown);
 		const pokemons = DATA_SOURCE.getRepository(Pokemon);
 		const targetUsersInventoryPokemons = await pokemons.find({
 			where: { heldBy: user.id },
@@ -257,36 +213,17 @@ export class Inventory {
 			await Promise.all(
 				targetUsersInventoryPokemons.map(async (pokemon) => {
 					let { level, experience, ...rest } = pokemon;
-					const {
-						health,
-						attack,
-						defense,
-						specialAttack,
-						specialDefense,
-						speed,
-					} = rest;
+					const { health, attack, defense, specialAttack, specialDefense, speed } = rest;
 					const pokemonDetails = await Storage.getDatabasePokemonDetails({
 						...rest,
 						experience,
 						level,
 					});
-					experience += Math.ceil(
-						// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
-						eval(CONFIGURATION.leveling.experiencePerMessage),
-					);
-					let stats = [
-						health,
-						attack,
-						defense,
-						specialAttack,
-						specialDefense,
-						speed,
-					];
-					if (
-						experience >=
-						// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
-						Math.ceil(eval(CONFIGURATION.leveling.experiencePerLevel))
-					) {
+					// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
+					experience += Math.ceil(eval(CONFIGURATION.leveling.experiencePerMessage));
+					let stats = [health, attack, defense, specialAttack, specialDefense, speed];
+					// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
+					if (experience >= Math.ceil(eval(CONFIGURATION.leveling.experiencePerLevel))) {
 						experience = 0;
 						level++;
 						stats = stats.map(
@@ -294,8 +231,7 @@ export class Inventory {
 								stat +
 								CONFIGURATION.leveling.pointsAbilityPerLevel.min +
 								Math.ceil(
-									Math.random() *
-										CONFIGURATION.leveling.pointsAbilityPerLevel.max -
+									Math.random() * CONFIGURATION.leveling.pointsAbilityPerLevel.max -
 										CONFIGURATION.leveling.pointsAbilityPerLevel.min,
 								),
 						);
@@ -303,14 +239,8 @@ export class Inventory {
 							`Your ${"error" in pokemonDetails ? "Unknown pokemon" : pokemonDetails.name} (No ${pokemonDetails.id}/#${pokemonDetails.pokeAPIId}) has leveled up to level ${level} you can check its new stat with /pc pokemon view ${pokemon.id}`,
 						);
 					}
-					const [
-						newHealth,
-						newAttack,
-						newDefense,
-						newSpecialAttack,
-						newSpecialDefense,
-						newSpeed,
-					] = stats;
+					const [newHealth, newAttack, newDefense, newSpecialAttack, newSpecialDefense, newSpeed] = stats;
+
 					return {
 						...rest,
 						level,
