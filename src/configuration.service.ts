@@ -1,6 +1,6 @@
-import { readFile } from "node:fs/promises";
-import { parse } from "yaml";
-import { z } from "zod";
+import { readFile } from 'node:fs/promises'
+import { parse } from 'yaml'
+import { z } from 'zod'
 
 const PointsAbilityPerLevelSchema = z
 	.object({
@@ -35,9 +35,9 @@ const ConfigurationSchema = z
 	})
 	.default({});
 
-export type Configuration = z.infer<typeof ConfigurationSchema>;
+export type ConfigurationService = z.infer<typeof ConfigurationSchema>;
 
-export async function loadConfiguration(): Promise<Configuration> {
+export async function loadConfiguration(): Promise<ConfigurationService> {
 	const file = await readFile("configuration.yaml", "utf-8");
 	const parsed = parse(file) ?? {};
 	return ConfigurationSchema.parse(parsed);
