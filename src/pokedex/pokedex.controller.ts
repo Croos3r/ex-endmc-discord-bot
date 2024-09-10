@@ -1,13 +1,12 @@
-import { ApplicationCommandOptionType, type ButtonInteraction, ButtonStyle, type CommandInteraction } from 'discord.js'
+import { ApplicationCommandOptionType, type ButtonInteraction, type CommandInteraction } from 'discord.js'
 import { ButtonComponent, Discord, Slash, SlashGroup, SlashOption } from 'discordx'
-import { getCachedByIdOrCacheResult } from '../cache.service.js'
 import {
 	createEphemeralContentMessage,
 	createEphemeralMessage,
 	createPokedexBaseStatsPokemonMessage,
 	createPokedexPokemonHomeMessage,
 } from '../helpers/ui.js'
-import { getPokemonDetails } from '../poke-api.service.js'
+import { getPokemonDetails } from './pokedex.service.js'
 
 @Discord()
 @SlashGroup({ name: "pokedex", description: "Pokedex commands" })
@@ -25,15 +24,7 @@ export class PokedexController {
 		interaction: CommandInteraction,
 	) {
 		const lowerCaseURLEncodedPokemonName = encodeURIComponent(pokemonName.toLowerCase());
-		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${lowerCaseURLEncodedPokemonName}`, () =>
-			getPokemonDetails(lowerCaseURLEncodedPokemonName),
-		).catch((error) => {
-			if (error.response?.status !== 404) {
-				console.error(`An error occured during fetch of pokemon's details ${pokemonName})`);
-				return "error" as const;
-			}
-			return "unknown" as const;
-		});
+		const pokemonDetails = await getPokemonDetails(lowerCaseURLEncodedPokemonName);
 
 		if (pokemonDetails === "unknown") return await interaction.reply(createEphemeralContentMessage("Unknown pokemon"));
 		if (pokemonDetails === "error") return await interaction.reply(createEphemeralContentMessage("An error occurred"));
@@ -41,18 +32,22 @@ export class PokedexController {
 	}
 
 	@ButtonComponent({ id: /base-stats-\d+/ })
-	async baseStats(interaction: ButtonInteraction): Promise<void> {
+	async baseStats(interaction: ButtonInteraction) {
 		const pokemonId = interaction.customId.split("-")[2];
-		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${pokemonId}`, () => getPokemonDetails(pokemonId));
+		const pokemonDetails = await getPokemonDetails(pokemonId);
 
+		if (pokemonDetails === "unknown") return await interaction.reply(createEphemeralContentMessage("Unknown pokemon"));
+		if (pokemonDetails === "error") return await interaction.reply(createEphemeralContentMessage("An error occurred"));
 		await interaction.update(createPokedexBaseStatsPokemonMessage(pokemonDetails));
 	}
 
 	@ButtonComponent({ id: /home-\d+/ })
-	async home(interaction: ButtonInteraction): Promise<void> {
+	async home(interaction: ButtonInteraction) {
 		const pokemonId = interaction.customId.split("-")[1];
-		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${pokemonId}`, () => getPokemonDetails(pokemonId));
+		const pokemonDetails = await getPokemonDetails(pokemonId);
 
-		await interaction.reply(createEphemeralMessage(createPokedexPokemonHomeMessage(pokemonDetails)));
+		if (pokemonDetails === "unknown") return await interaction.reply(createEphemeralContentMessage("Unknown pokemon"));
+		if (pokemonDetails === "error") return await interaction.reply(createEphemeralContentMessage("An error occurred"));
+		await interaction.update(createPokedexPokemonHomeMessage(pokemonDetails));
 	}
 }

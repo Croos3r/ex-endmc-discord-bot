@@ -1,14 +1,6 @@
-import {
-	ApplicationCommandOptionType,
-	type ButtonInteraction,
-	ButtonStyle,
-	type CommandInteraction,
-	type User,
-} from 'discord.js'
+import { ApplicationCommandOptionType, type ButtonInteraction, type CommandInteraction, type User } from 'discord.js'
 import { ButtonComponent, Discord, Slash, SlashGroup, SlashOption } from 'discordx'
-import { getCachedByIdOrCacheResult, invalidateCache } from '../cache.service.js'
-import DATA_SOURCE from '../database.service.js'
-import Pokemon from '../entities/Pokemon.js'
+import { getCachedByIdOrCacheResult } from '../cache.service.js'
 import {
 	createContentMessage,
 	createEmptyPCMessage,
@@ -18,30 +10,24 @@ import {
 	createPCPokemonViewMessage,
 } from '../helpers/ui.js'
 import { getPokemonDetails } from '../poke-api.service.js'
-import { getPCMaxPage, getPCPagePokemons } from './storage.service.js'
+import { createPokemon, getPCMaxPage, getPCPagePokemons, getStoredPokemon, removePokemon } from './storage.service.js'
 
 @Discord()
 @SlashGroup({ name: "pc", description: "PC commands" })
 @SlashGroup({ name: "storage", description: "Storage commands", root: "pc" })
 @SlashGroup("storage", "pc")
 export class StorageController {
-	static async getPCPageComponents(targetUser: User, pageNumber: number) {
-		const pcPagePokemons = await getPCPagePokemons(targetUser, pageNumber);
-		const maxPage = await getPCMaxPage(targetUser);
-		if (maxPage === 0) return createEmptyPCMessage(targetUser);
+	static async getPCPageComponents(trainer: User, pageNumber: number) {
+		const pcPagePokemons = await getPCPagePokemons(trainer, pageNumber);
+		const maxPage = await getPCMaxPage(trainer);
+		if (maxPage === 0) return createEmptyPCMessage(trainer);
 		if (pageNumber > maxPage) return createContentMessage(`Page ${pageNumber} not found`);
-		return createPCPageMessage(targetUser, pageNumber, maxPage, pcPagePokemons);
+		return createPCPageMessage(trainer, pageNumber, maxPage, pcPagePokemons);
 	}
 
-	static async getPokemonViewMessage(targetUser: User, pokemonId: number) {
-		const pokemons = DATA_SOURCE.getRepository(Pokemon);
-		const pokemon = await pokemons.findOne({
-			where: [
-				{ id: pokemonId, storedBy: targetUser.id },
-				{ id: pokemonId, heldBy: targetUser.id },
-			],
-		});
-		if (!pokemon) return createContentMessage(`Pokemon #${pokemonId} not found in **${targetUser.displayName}**'s PC`);
+	static async getPokemonViewMessage(trainer: User, pokemonId: number) {
+		const pokemon = await getStoredPokemon(trainer, pokemonId);
+		if (!pokemon) return createContentMessage(`Pokemon #${pokemonId} not found in **${trainer.displayName}**'s PC`);
 
 		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${pokemon.pokeAPIId}`, () =>
 			getPokemonDetails(pokemon.pokeAPIId.toString()),
@@ -58,15 +44,15 @@ export class StorageController {
 
 		if (pokemonDetails === "unknown" || pokemonDetails === "error")
 			return createContentMessage(`Pokemon #${pokemon.pokeAPIId} not found`);
-		return createPCPokemonViewMessage(targetUser, pokemonDetails, pokemon);
+		return createPCPokemonViewMessage(trainer, pokemonDetails, pokemon);
 	}
 
 	@ButtonComponent({ id: /pokemon-view-\d+-\d+/ })
 	async viewPokemon(interaction: ButtonInteraction) {
 		const [pokemonId, userId] = interaction.customId.split("-").slice(2);
-		const targetUser = await interaction.client.users.fetch(userId);
-		if (!targetUser) return await interaction.reply({ content: "User not found", ephemeral: true });
-		const pokemonViewComponents = await StorageController.getPokemonViewMessage(targetUser, Number.parseInt(pokemonId));
+		const trainer = await interaction.client.users.fetch(userId);
+		if (!trainer) return await interaction.reply(createEphemeralContentMessage("User not found"));
+		const pokemonViewComponents = await StorageController.getPokemonViewMessage(trainer, Number.parseInt(pokemonId));
 
 		await interaction.update(pokemonViewComponents);
 	}
@@ -74,9 +60,9 @@ export class StorageController {
 	@ButtonComponent({ id: /pc-page-\d+-\d+/ })
 	async viewPCPage(interaction: ButtonInteraction) {
 		const [pageNumber, userId] = interaction.customId.split("-").slice(2);
-		const targetUser = await interaction.client.users.fetch(userId);
-		if (!targetUser) return await interaction.reply({ content: "User not found", ephemeral: true });
-		const pcPageComponents = await StorageController.getPCPageComponents(targetUser, Number.parseInt(pageNumber));
+		const trainer = await interaction.client.users.fetch(userId);
+		if (!trainer) return await interaction.reply(createEphemeralContentMessage("User not found"));
+		const pcPageComponents = await StorageController.getPCPageComponents(trainer, Number.parseInt(pageNumber));
 
 		await interaction.update(pcPageComponents);
 	}
@@ -89,7 +75,7 @@ export class StorageController {
 			required: false,
 			type: ApplicationCommandOptionType.User,
 		})
-		user: User | undefined,
+		trainer: User | undefined,
 		@SlashOption({
 			name: "page",
 			description: "Page number",
@@ -106,13 +92,13 @@ export class StorageController {
 		pokemonId: number | undefined,
 		interaction: CommandInteraction,
 	) {
-		const targetUser = user ?? interaction.user;
+		const targetTrainer = trainer ?? interaction.user;
 
 		if (pokemonId === undefined) {
-			const pcPageComponents = await StorageController.getPCPageComponents(targetUser, pageNumber ?? 1);
+			const pcPageComponents = await StorageController.getPCPageComponents(targetTrainer, pageNumber ?? 1);
 			return await interaction.reply(createEphemeralMessage(pcPageComponents));
 		}
-		const pokemonViewCmponents = await StorageController.getPokemonViewMessage(targetUser, pokemonId);
+		const pokemonViewCmponents = await StorageController.getPokemonViewMessage(targetTrainer, pokemonId);
 
 		return await interaction.reply(createEphemeralMessage(pokemonViewCmponents));
 	}
@@ -132,19 +118,16 @@ export class StorageController {
 			required: false,
 			type: ApplicationCommandOptionType.User,
 		})
-		user: User | undefined,
+		trainer: User | undefined,
 		interaction: CommandInteraction,
 	) {
-		const targetUser = user ?? interaction.user;
+		const targetTrainer = trainer ?? interaction.user;
 		const lowerCaseURLEncodedPokemonName = encodeURIComponent(pokemonNameOrId.toLowerCase());
 		const pokemonDetails = await getCachedByIdOrCacheResult(`pokemon:${lowerCaseURLEncodedPokemonName}`, () =>
 			getPokemonDetails(lowerCaseURLEncodedPokemonName),
 		).catch((error) => {
 			if (error.response?.status !== 404) {
-				console.error(
-					`An error occured during fetch of to-be-stored pokemon ${pokemon.id}(#${pokemon.pokeAPIId})`,
-					error,
-				);
+				console.error(`An error occured during fetch of to-be-stored pokemon ${pokemonNameOrId}`, error);
 				return "error" as const;
 			}
 			return "unknown" as const;
@@ -152,24 +135,10 @@ export class StorageController {
 
 		if (pokemonDetails === "unknown") return await interaction.reply(createEphemeralContentMessage("Unknown pokemon"));
 		if (pokemonDetails === "error") return await interaction.reply(createEphemeralContentMessage("An error occurred"));
-		const pokemons = DATA_SOURCE.getRepository(Pokemon);
-
-		const pokemon = pokemons.create({
-			pokeAPIId: pokemonDetails.id,
-			storedBy: targetUser.id,
-			health: pokemonDetails.stats.find((stat) => stat.name === "HP")?.stat ?? 0,
-			attack: pokemonDetails.stats.find((stat) => stat.name === "Attack")?.stat ?? 0,
-			defense: pokemonDetails.stats.find((stat) => stat.name === "Defense")?.stat ?? 0,
-			specialAttack: pokemonDetails.stats.find((stat) => stat.name === "Special-attack")?.stat ?? 0,
-			specialDefense: pokemonDetails.stats.find((stat) => stat.name === "Special-defense")?.stat ?? 0,
-			speed: pokemonDetails.stats.find((stat) => stat.name === "Speed")?.stat ?? 0,
-		});
-		await pokemons.save(pokemon);
-		await invalidateCache(`pc:max-page:${targetUser.id}`);
-
+		await createPokemon(targetTrainer, pokemonDetails);
 		await interaction.reply(
 			createEphemeralContentMessage(
-				`Pokemon ${pokemonDetails.name} (#${pokemonDetails.id}) successfully added to **${targetUser.displayName}**'s PC`,
+				`Pokemon ${pokemonDetails.name} (#${pokemonDetails.id}) successfully added to **${targetTrainer.displayName}**'s PC`,
 			),
 		);
 	}
@@ -189,22 +158,20 @@ export class StorageController {
 			required: false,
 			type: ApplicationCommandOptionType.User,
 		})
-		user: User | undefined,
+		trainer: User | undefined,
 		interaction: CommandInteraction,
 	) {
-		const targetUser = user ?? interaction.user;
-		const pokemons = DATA_SOURCE.getRepository(Pokemon);
+		const targetTrainer = trainer ?? interaction.user;
 
-		const pokemon = await pokemons.findOneBy({ id: pokemonPCId, storedBy: targetUser.id });
+		const pokemon = await getStoredPokemon(targetTrainer, pokemonPCId);
 		if (!pokemon)
 			return await interaction.reply(
-				createContentMessage(`Pokemon #${pokemonPCId} not found in **${targetUser.displayName}**'s PC`),
+				createContentMessage(`Pokemon #${pokemonPCId} not found in **${targetTrainer.displayName}**'s PC`),
 			);
 
-		await pokemons.remove(pokemon);
-		await invalidateCache(`pc:max-page:${targetUser.id}`);
+		await removePokemon(pokemon);
 		await interaction.reply(
-			createContentMessage(`Pokemon #${pokemonPCId} successfully removed from **${targetUser.displayName}**'s PC`),
+			createContentMessage(`Pokemon #${pokemonPCId} successfully removed from **${targetTrainer.displayName}**'s PC`),
 		);
 	}
 }

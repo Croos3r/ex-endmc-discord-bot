@@ -1,17 +1,21 @@
 import { ApplicationCommandOptionType, type ButtonInteraction, type CommandInteraction, type User } from 'discord.js'
 import { type ArgsOf, ButtonComponent, Discord, On, Slash, SlashGroup, SlashOption } from 'discordx'
-import { invalidateCache, isDelayKeyActive, setDelayKey } from '../cache.service.js'
-import { CONFIGURATION } from '../configuration.service.js'
-import DATA_SOURCE from '../database.service.js'
-import Pokemon from '../entities/Pokemon.js'
 import {
 	createEmptyInventoryMessage,
 	createEphemeralContentMessage,
 	createEphemeralMessage,
 	createInventoryMessage,
 } from '../helpers/ui.js'
-import { getDatabasePokemonDetails } from '../storage/storage.service.js'
-import { getInventoryPokemons, isInventoryFull } from './inventory.service.js'
+import { getDatabasePokemonDetails, getStoredPokemon, setPokemonStored } from '../storage/storage.service.js'
+import {
+	getHeldPokemon,
+	getInventoryPokemons,
+	isExperienceOnCooldown,
+	isInventoryFull,
+	setExperienceCooldown,
+	setPokemonHeld,
+	updateAllHeldPokemonsExperienceAndStats,
+} from './inventory.service.js'
 
 @Discord()
 @SlashGroup({
@@ -21,10 +25,10 @@ import { getInventoryPokemons, isInventoryFull } from './inventory.service.js'
 })
 @SlashGroup("inventory", "pc")
 export class InventoryController {
-	static async getInventoryComponents(targetUser: User) {
-		const inventoryPokemons = await getInventoryPokemons(targetUser);
-		if (inventoryPokemons.length === 0) return createEmptyInventoryMessage(targetUser);
-		return createInventoryMessage(targetUser, inventoryPokemons);
+	static async getInventoryComponents(trainer: User) {
+		const inventoryPokemons = await getInventoryPokemons(trainer);
+		if (inventoryPokemons.length === 0) return createEmptyInventoryMessage(trainer);
+		return createInventoryMessage(trainer, inventoryPokemons);
 	}
 
 	@ButtonComponent({ id: /inventory-refresh-\d+/ })
@@ -41,11 +45,11 @@ export class InventoryController {
 			required: false,
 			type: ApplicationCommandOptionType.User,
 		})
-		user: User | undefined,
+		trainer: User | undefined,
 		interaction: CommandInteraction,
 	) {
-		const targetUser = user ?? interaction.user;
-		const inventoryPageComponents = await InventoryController.getInventoryComponents(targetUser);
+		const targetTrainer = trainer ?? interaction.user;
+		const inventoryPageComponents = await InventoryController.getInventoryComponents(targetTrainer);
 		await interaction.reply(createEphemeralMessage(inventoryPageComponents));
 	}
 
@@ -64,24 +68,19 @@ export class InventoryController {
 			required: false,
 			type: ApplicationCommandOptionType.User,
 		})
-		user: User | undefined,
+		trainer: User | undefined,
 		interaction: CommandInteraction,
 	) {
-		const targetUser = user ?? interaction.user;
-		const pokemons = DATA_SOURCE.getRepository(Pokemon);
-		const pokemonToTransfer = await pokemons.findOne({ where: { id: pokemon, storedBy: targetUser.id } });
+		const targetTrainer = trainer ?? interaction.user;
+		const pokemonToTransfer = await getStoredPokemon(targetTrainer, pokemon);
 
 		if (!pokemonToTransfer)
 			return await interaction.reply(
-				createEphemeralContentMessage(`Pokemon not found in ${targetUser.displayName}'s PC`),
+				createEphemeralContentMessage(`Pokemon not found in ${targetTrainer.displayName}'s PC`),
 			);
-		if (await isInventoryFull(targetUser))
+		if (await isInventoryFull(targetTrainer))
 			return await interaction.reply(createEphemeralContentMessage("Your inventory is full"));
-		pokemonToTransfer.heldBy = targetUser.id;
-		pokemonToTransfer.storedBy = null;
-		await pokemons.save(pokemonToTransfer);
-		await invalidateCache(`pc:max-page:${targetUser.id}`);
-		await invalidateCache(`inventory:full:${targetUser.id}`);
+		await setPokemonHeld(targetTrainer, pokemonToTransfer.id);
 		const pokemonDetails = await getDatabasePokemonDetails(pokemonToTransfer);
 		await interaction.reply(
 			createEphemeralContentMessage(
@@ -105,22 +104,17 @@ export class InventoryController {
 			required: false,
 			type: ApplicationCommandOptionType.User,
 		})
-		user: User | undefined,
+		trainer: User | undefined,
 		interaction: CommandInteraction,
 	) {
-		const targetUser = user ?? interaction.user;
-		const pokemons = DATA_SOURCE.getRepository(Pokemon);
-		const pokemonToTransfer = await pokemons.findOne({ where: { id: pokemon, heldBy: targetUser.id } });
+		const targetTrainer = trainer ?? interaction.user;
+		const pokemonToTransfer = await getHeldPokemon(targetTrainer, pokemon);
 
 		if (!pokemonToTransfer)
 			return await interaction.reply(
-				createEphemeralContentMessage(`Pokemon not found in ${targetUser.displayName}'s inventory`),
+				createEphemeralContentMessage(`Pokemon not found in ${targetTrainer.displayName}'s inventory`),
 			);
-		pokemonToTransfer.heldBy = null;
-		pokemonToTransfer.storedBy = targetUser.id;
-		await pokemons.save(pokemonToTransfer);
-		await invalidateCache(`pc:max-page:${targetUser.id}`);
-		await invalidateCache(`inventory:full:${targetUser.id}`);
+		await setPokemonStored(targetTrainer, pokemonToTransfer.id);
 		const pokemonDetails = await getDatabasePokemonDetails(pokemonToTransfer);
 		await interaction.reply(
 			createEphemeralContentMessage(
@@ -132,59 +126,14 @@ export class InventoryController {
 	@On({ event: "messageCreate" })
 	async onMessageCreate([message]: ArgsOf<"messageCreate">) {
 		if (message.author.bot) return;
-		const user = message.author;
+		const trainer = message.author;
 
-		const isExperiencedDelayed = await isDelayKeyActive(`experience-delay:${user.id}`);
+		const isExperiencedDelayed = await isExperienceOnCooldown(trainer);
 
 		if (isExperiencedDelayed) return;
-		await setDelayKey(`experience-delay:${user.id}`, CONFIGURATION.leveling.experienceGainCooldown);
-		const pokemons = DATA_SOURCE.getRepository(Pokemon);
-		const targetUsersInventoryPokemons = await pokemons.find({
-			where: { heldBy: user.id },
-			take: CONFIGURATION.inventory.size,
-		});
+		await setExperienceCooldown(trainer);
+		const targetUsersInventoryPokemons = await getInventoryPokemons(trainer);
 		if (targetUsersInventoryPokemons.length === 0) return;
-		await pokemons.save(
-			await Promise.all(
-				targetUsersInventoryPokemons.map(async (pokemon) => {
-					let { level, experience, ...rest } = pokemon;
-					const { health, attack, defense, specialAttack, specialDefense, speed } = rest;
-					const pokemonDetails = await getDatabasePokemonDetails({ ...rest, experience, level });
-					// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
-					experience += Math.ceil(eval(CONFIGURATION.leveling.experiencePerMessage));
-					let stats = [health, attack, defense, specialAttack, specialDefense, speed];
-					// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
-					if (experience >= Math.ceil(eval(CONFIGURATION.leveling.experiencePerLevel))) {
-						experience = 0;
-						level++;
-						stats = stats.map(
-							(stat) =>
-								stat +
-								CONFIGURATION.leveling.pointsAbilityPerLevel.min +
-								Math.ceil(
-									Math.random() * CONFIGURATION.leveling.pointsAbilityPerLevel.max -
-										CONFIGURATION.leveling.pointsAbilityPerLevel.min,
-								),
-						);
-						await user.send(
-							`Your ${"error" in pokemonDetails ? "Unknown pokemon" : pokemonDetails.name} (No ${pokemonDetails.id}/#${pokemonDetails.pokeAPIId}) has leveled up to level ${level} you can check its new stat with /pc pokemon view ${pokemon.id}`,
-						);
-					}
-					const [newHealth, newAttack, newDefense, newSpecialAttack, newSpecialDefense, newSpeed] = stats;
-
-					return {
-						...rest,
-						level,
-						experience,
-						health: newHealth,
-						attack: newAttack,
-						defense: newDefense,
-						specialAttack: newSpecialAttack,
-						specialDefense: newSpecialDefense,
-						speed: newSpeed,
-					};
-				}),
-			),
-		);
+		await updateAllHeldPokemonsExperienceAndStats(trainer);
 	}
 }
