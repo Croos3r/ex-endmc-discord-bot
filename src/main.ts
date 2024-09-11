@@ -4,6 +4,7 @@ import { IntentsBitField } from "discord.js";
 import { Client } from "discordx";
 import "reflect-metadata";
 import "dotenv/config";
+import { DATA_SOURCE } from './database.service.js'
 
 export const bot = new Client({
 	// To use only guild command
@@ -33,6 +34,7 @@ bot.once("ready", async () => {
 	// Synchronize applications commands with Discord
 	// noinspection ES6MissingAwait: No need to await this
 	bot.initApplicationCommands();
+	await DATA_SOURCE.runMigrations();
 
 	// To clear all guild commands, uncomment this line,
 	// This is useful when moving from guild commands to global commands
