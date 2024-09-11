@@ -1,10 +1,11 @@
 import { DataSource } from "typeorm";
 import { SnakeNamingStrategy } from "typeorm-naming-strategies";
+import "dotenv/config";
 
 export const DATA_SOURCE = new DataSource({
 	type: "postgres",
 	host: process.env.DB_HOST,
-	port: process.env.DB_PORT,
+	port: Number.parseInt(process.env.DB_PORT || "5432"),
 	username: process.env.DB_USER,
 	password: process.env.DB_PASS,
 	database: process.env.DB_NAME,
@@ -23,5 +24,3 @@ DATA_SOURCE.initialize()
 		console.error("Database initialization failed", error);
 		process.exit(1);
 	});
-
-export default DATA_SOURCE;

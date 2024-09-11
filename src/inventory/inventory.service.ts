@@ -1,7 +1,7 @@
 import type { User } from "discord.js";
 import { getCachedByIdOrCacheResult, invalidateCache, isDelayKeyActive, setDelayKey } from "../cache.service.js";
 import { CONFIGURATION } from "../configuration.service.js";
-import DATA_SOURCE from "../database.service.js";
+import { DATA_SOURCE } from "../database.service.js";
 import Pokemon from "../entities/Pokemon.js";
 import { getDatabasePokemonDetails } from "../storage/storage.service.js";
 

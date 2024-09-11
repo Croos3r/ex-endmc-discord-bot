@@ -13,7 +13,11 @@
 		"format": "biome format",
 		"format:fix": "biome format --fix",
 		"lint": "biome lint",
-		"lint:fix": "biome lint --fix"
+		"lint:fix": "biome lint --fix",
+		"migration:generate": "typeorm-ts-node-esm -d src/database.service.ts migration:generate",
+		"migration:run": "typeorm-ts-node-esm -d src/database.service.ts migration:run",
+		"schema:sync": "typeorm-ts-node-esm -d src/database.service.ts schema:sync",
+		"schema:drop": "typeorm-ts-node-esm -d src/database.service.ts schema:drop"
 	},
 	"dependencies": {
 		"@discordx/importer": "^1.3.1",
