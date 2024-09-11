@@ -1,10 +1,6 @@
 name: Continuous Integration
 
-on:
-  push:
-    branches-ignore: [ main ]
-  workflow_call:
-    branches: [ main ]
+on: [ push, workflow_call ]
 
 jobs:
   build:
