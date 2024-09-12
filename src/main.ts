@@ -4,7 +4,7 @@ import { IntentsBitField } from "discord.js";
 import { Client } from "discordx";
 import "reflect-metadata";
 import "dotenv/config";
-import { DATA_SOURCE } from './database.service.js'
+import { DATA_SOURCE } from "./database.service.js";
 
 export const bot = new Client({
 	// To use only guild command
