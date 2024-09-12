@@ -65,10 +65,10 @@ export async function updateHeldPokemonExperienceAndStats(
 		stats = stats.map(
 			(stat) =>
 				stat +
-				CONFIGURATION.leveling.pointsAbilityPerLevel.min +
+				CONFIGURATION.leveling.abilityPointsPerLevel.min +
 				Math.ceil(
-					Math.random() * CONFIGURATION.leveling.pointsAbilityPerLevel.max -
-						CONFIGURATION.leveling.pointsAbilityPerLevel.min,
+					Math.random() * CONFIGURATION.leveling.abilityPointsPerLevel.max -
+						CONFIGURATION.leveling.abilityPointsPerLevel.min,
 				),
 		);
 		await trainer.send(

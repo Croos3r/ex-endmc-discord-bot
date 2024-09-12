@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { parse } from "yaml";
 import { z } from "zod";
 
-const PointsAbilityPerLevelSchema = z
+const AbilityPointsPerLevelSchema = z
 	.object({
 		min: z.number().int().min(1).max(255).default(1),
 		max: z.number().int().min(1).max(255).default(5),
@@ -29,7 +29,7 @@ const ConfigurationSchema = z
 				experienceGainCooldown: z.number().int().min(1).default(10),
 				experiencePerMessage: z.string().default("1 / level * 10"),
 				experiencePerLevel: z.string().default("level * 100"),
-				pointsAbilityPerLevel: PointsAbilityPerLevelSchema.default({}),
+				abilityPointsPerLevel: AbilityPointsPerLevelSchema.default({}),
 			})
 			.default({}),
 	})
