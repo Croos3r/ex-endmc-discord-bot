@@ -3,7 +3,7 @@ import { Redis } from "ioredis";
 const REDIS_INSTANCE = new Redis({
 	keyPrefix: "eedb:",
 	host: process.env.REDIS_HOST,
-	port: process.env.REDIS_PORT,
+	port: Number.parseInt(process.env.REDIS_PORT),
 });
 
 export async function invalidateCache(key: string): Promise<void> {
