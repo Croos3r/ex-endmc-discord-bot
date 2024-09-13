@@ -27,6 +27,24 @@ export async function getCachedByIdOrCacheResult<T>(
 	return result;
 }
 
+export async function setCachedValueIfNotExists(
+	key: string,
+	value: unknown,
+	expireInSeconds = 60 * 60 * 24 * 7, // One week
+): Promise<void> {
+	if (await REDIS_INSTANCE.exists(key)) return;
+	await REDIS_INSTANCE.setex(key, expireInSeconds, JSON.stringify(value));
+}
+
+export async function setCachedValue(key: string, value: unknown, expireInSeconds = 60 * 60 * 24 * 7): Promise<void> {
+	await REDIS_INSTANCE.setex(key, expireInSeconds, JSON.stringify(value));
+}
+
+export async function getCachedValue<T>(key: string): Promise<T | null> {
+	const cachedResult = await REDIS_INSTANCE.get(key);
+	return cachedResult ? JSON.parse(cachedResult) : null;
+}
+
 export async function setDelayKey(key: string, expireInSeconds: number) {
 	await REDIS_INSTANCE.setex(key, expireInSeconds, "");
 }

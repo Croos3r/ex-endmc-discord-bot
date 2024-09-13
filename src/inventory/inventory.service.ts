@@ -1,9 +1,11 @@
 import type { User } from "discord.js";
 import { getCachedByIdOrCacheResult, invalidateCache, isDelayKeyActive, setDelayKey } from "../cache.service.js";
-import { CONFIGURATION } from "../configuration.service.js";
+import { CONFIGURATION } from "../configuration.js";
 import { DATA_SOURCE } from "../database.service.js";
 import Pokemon from "../entities/Pokemon.js";
 import { getDatabasePokemonDetails } from "../storage/storage.service.js";
+
+export type ExperienceGainReason = "message" | "voice";
 
 export async function isInventoryFull(trainer: User) {
 	return await getCachedByIdOrCacheResult(`inventory:full:${trainer.id}`, async () => {
@@ -40,22 +42,28 @@ export async function getAllHeldPokemons(trainer: User) {
 	return await pokemons.find({ where: { heldBy: trainer.id }, take: CONFIGURATION.inventory.size });
 }
 
-export async function updateAllHeldPokemonsExperienceAndStats(trainer: User) {
+export async function updateAllHeldPokemonsExperienceAndStats(
+	trainer: User,
+	reason: ExperienceGainReason,
+	iterations: number,
+) {
 	const pokemons = DATA_SOURCE.getRepository(Pokemon);
-	const heldPokemons = await getAllHeldPokemons(trainer);
+	let heldPokemons = await getAllHeldPokemons(trainer);
 
-	return await pokemons.save(
-		await Promise.all(heldPokemons.map((pokemon) => updateHeldPokemonExperienceAndStats(trainer, pokemon))),
-	);
+	for (let i = 0; i < Math.floor(iterations); i++)
+		heldPokemons = await Promise.all(
+			heldPokemons.map((pokemon) => updateHeldPokemonExperienceAndStats(trainer, pokemon, reason)),
+		);
+	return await pokemons.save(heldPokemons);
 }
 
 // noinspection JSUnusedLocalSymbols: can be used in eval in configuration
 export async function updateHeldPokemonExperienceAndStats(
 	trainer: User,
 	{ level, experience, health, attack, defense, specialAttack, specialDefense, speed, ...rest }: Pokemon,
+	experienceGainReason: ExperienceGainReason,
 ) {
-	// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
-	experience += Math.ceil(eval(CONFIGURATION.leveling.experiencePerMessage));
+	experience = computeNewExperienceValue(experience, level, experienceGainReason);
 
 	let stats = [health, attack, defense, specialAttack, specialDefense, speed];
 	// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
@@ -96,4 +104,15 @@ export async function isExperienceOnCooldown(user: User) {
 
 export async function setExperienceCooldown(user: User) {
 	await setDelayKey(`experience-delay:${user.id}`, CONFIGURATION.leveling.experienceGainCooldown);
+}
+
+export function computeNewExperienceValue(experience: number, level: number, reason: ExperienceGainReason): number {
+	switch (reason) {
+		case "message":
+			// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
+			return experience + Math.ceil(eval(CONFIGURATION.leveling.experiencePerMessage));
+		case "voice":
+			// biome-ignore lint/security/noGlobalEval: only way to let the configuration have a formula
+			return experience + Math.ceil(eval(CONFIGURATION.leveling.experiencePerSecondsInVoiceChannel));
+	}
 }

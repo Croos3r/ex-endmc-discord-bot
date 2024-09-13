@@ -1,5 +1,12 @@
-import { ApplicationCommandOptionType, type ButtonInteraction, type CommandInteraction, type User } from "discord.js";
+import {
+	ApplicationCommandOptionType,
+	type ButtonInteraction,
+	type CommandInteraction,
+	type GuildMember,
+	type User,
+} from "discord.js";
 import { type ArgsOf, ButtonComponent, Discord, On, Slash, SlashGroup, SlashOption } from "discordx";
+import { getCachedValue, invalidateCache, setCachedValue, setCachedValueIfNotExists } from "../cache.service.js";
 import {
 	createEmptyInventoryMessage,
 	createEphemeralContentMessage,
@@ -134,6 +141,32 @@ export class InventoryController {
 		await setExperienceCooldown(trainer);
 		const targetUsersInventoryPokemons = await getInventoryPokemons(trainer);
 		if (targetUsersInventoryPokemons.length === 0) return;
-		await updateAllHeldPokemonsExperienceAndStats(trainer);
+		await updateAllHeldPokemonsExperienceAndStats(trainer, "message", 1);
+	}
+
+	@On({ event: "voiceStateUpdate" })
+	async onVoiceStateUpdate([oldState, newState]: ArgsOf<"voiceStateUpdate">) {
+		const member = oldState.member ?? newState.member;
+
+		if (!member) return;
+
+		if (!oldState.channel && newState.channel) return await this.onVoiceChannelJoin(member);
+		if (!newState.channel && oldState.channel) return await this.onVoiceChannelLeave(member);
+	}
+
+	async onVoiceChannelJoin(member: GuildMember) {
+		const currentTime = new Date().getTime();
+		await setCachedValue(`voice:join:${member.id}`, currentTime);
+	}
+
+	async onVoiceChannelLeave(member: GuildMember) {
+		const joinTime = await getCachedValue<number>(`voice:join:${member.id}`);
+
+		// Check if the join time is null (aka bot was not listening when the user joined), because 0 is possible
+		if (joinTime === null) return;
+		const currentTime = new Date().getTime();
+		const timeSpent = currentTime - joinTime;
+		await invalidateCache(`voice:join:${member.id}`);
+		await updateAllHeldPokemonsExperienceAndStats(member.user, "voice", timeSpent / 1000);
 	}
 }
