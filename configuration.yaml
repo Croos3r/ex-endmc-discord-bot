@@ -4,11 +4,11 @@ storage:
   pokemonsPerPage: 24
 leveling:
   # In seonds
-  experienceGainCooldow: 10
+  experienceGainCooldown: 10
   # Formula: level variabble can be used
   experiencePerMessage: "60"
   # Formula: level variabble can be used
   experiencePerLevel: level * 100
-  pointsAbilityPerLevel:
+  abilityPointsPerLevel:
     min: 1
     max: 5
