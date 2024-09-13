@@ -6,7 +6,7 @@ import {
 	type User,
 } from "discord.js";
 import { type ArgsOf, ButtonComponent, Discord, On, Slash, SlashGroup, SlashOption } from "discordx";
-import { getCachedValue, invalidateCache, setCachedValue, setCachedValueIfNotExists } from "../cache.service.js";
+import { getCachedValue, invalidateCache, setCachedValue } from "../cache.service.js";
 import {
 	createEmptyInventoryMessage,
 	createEphemeralContentMessage,
