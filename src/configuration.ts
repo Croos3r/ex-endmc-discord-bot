@@ -12,7 +12,32 @@ const AbilityPointsPerLevelSchema = z
 	})
 	.default({});
 
-const ConfigurationSchema = z
+const MultiplierSchema = z
+	.object({
+		type: z.literal("status"),
+		statusText: z.string(),
+		requiredMinStatusDuration: z.number().int().min(1).default(86400),
+	})
+	.or(
+		z.object({
+			type: z.literal("message"),
+			messageText: z.string(),
+		}),
+	)
+	.or(
+		z.object({
+			type: z.enum(["wonBattle", "lostBattle", "joinedGuild"]),
+		}),
+	)
+	.and(
+		z.object({
+			multiplier: z.number(),
+			multiplierDuration: z.number().int().min(1).optional(),
+			cooldownDuration: z.number().int().min(1).optional(),
+		}),
+	);
+
+export const ConfigurationSchema = z
 	.object({
 		inventory: z
 			.object({
@@ -28,16 +53,20 @@ const ConfigurationSchema = z
 			.object({
 				experienceGainCooldown: z.number().int().min(1).default(10),
 				experiencePerMessage: z.string().default("1 / level * 10"),
+				experiencePerSecondsInVoiceChannel: z.string().default("1 / level"),
 				experiencePerLevel: z.string().default("level * 100"),
+				experiencePerWonBattle: z.string().default("level * 100"),
+				experiencePerLostBattle: z.string().default("-1"),
 				abilityPointsPerLevel: AbilityPointsPerLevelSchema.default({}),
+				multipliers: z.record(z.string(), MultiplierSchema).default({}),
 			})
 			.default({}),
 	})
 	.default({});
 
-export type ConfigurationService = z.infer<typeof ConfigurationSchema>;
+export type Configuration = z.infer<typeof ConfigurationSchema>;
 
-export async function loadConfiguration(): Promise<ConfigurationService> {
+export async function loadConfiguration(): Promise<Configuration> {
 	const file = await readFile("configuration.yaml", "utf-8");
 	const parsed = parse(file) ?? {};
 	return ConfigurationSchema.parse(parsed);
