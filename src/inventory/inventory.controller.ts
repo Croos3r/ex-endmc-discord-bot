@@ -150,8 +150,19 @@ export class InventoryController {
 
 		if (!member) return;
 
-		if (!oldState.channel && newState.channel) return await this.onVoiceChannelJoin(member);
-		if (!newState.channel && oldState.channel) return await this.onVoiceChannelLeave(member);
+		// Is considered joining if the user was self muted/deafened and is now no longer self muted/deafened or if the user was not in a voice channel and is now in a voice channel
+		if (
+			((oldState.selfMute || oldState.selfDeaf) && !newState.selfMute && !newState.selfDeaf) ||
+			(!oldState.channel && newState.channel)
+		)
+			return await this.onVoiceChannelJoin(member);
+
+		// Is considered leaving if the user was not self muted/deafened and is now self muted/deafened or if the user was in a voice channel and is now no longer in a voice channel
+		if (
+			(!oldState.selfMute && !oldState.selfDeaf && (newState.selfMute || newState.selfDeaf)) ||
+			(!newState.channel && oldState.channel)
+		)
+			return await this.onVoiceChannelLeave(member);
 	}
 
 	async onVoiceChannelJoin(member: GuildMember) {
