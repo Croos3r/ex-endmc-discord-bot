@@ -1,6 +1,6 @@
 import type { User } from "discord.js";
 import { getCachedByIdOrCacheResult, invalidateCache, isDelayKeyActive, setDelayKey } from "../cache.service.js";
-import { CONFIGURATION } from "../configuration.js";
+import { CONFIGURATION } from "../configuration.service.js";
 import { DATA_SOURCE } from "../database.service.js";
 import Pokemon from "../entities/Pokemon.js";
 import { getDatabasePokemonDetails } from "../storage/storage.service.js";
@@ -99,11 +99,11 @@ export async function updateHeldPokemonExperienceAndStats(
 }
 
 export async function isExperienceOnCooldown(user: User) {
-	return await isDelayKeyActive(`experience-delay:${user.id}`);
+	return await isDelayKeyActive(`experience:delay:${user.id}`);
 }
 
 export async function setExperienceCooldown(user: User) {
-	await setDelayKey(`experience-delay:${user.id}`, CONFIGURATION.leveling.experienceGainCooldown);
+	await setDelayKey(`experience:delay:${user.id}`, CONFIGURATION.leveling.experienceGainCooldown);
 }
 
 export function computeNewExperienceValue(experience: number, level: number, reason: ExperienceGainReason): number {

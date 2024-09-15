@@ -1,4 +1,5 @@
 import { Redis } from "ioredis";
+import { string } from "zod";
 
 const REDIS_INSTANCE = new Redis({
 	keyPrefix: "eedb:",
@@ -13,31 +14,36 @@ export async function invalidateCache(key: string): Promise<void> {
 export async function getCachedByIdOrCacheResult<T>(
 	key: string,
 	fetcherFunction: () => Promise<T>,
-	expireInSeconds = 60 * 60 * 24 * 7, // One week
+	expireInSeconds?: number,
 ): Promise<T> {
 	const cachedResult = await REDIS_INSTANCE.get(key);
 
 	if (cachedResult) {
-		await REDIS_INSTANCE.expire(key, expireInSeconds);
+		if (expireInSeconds !== undefined) await REDIS_INSTANCE.expire(key, expireInSeconds);
 		return JSON.parse(cachedResult);
 	}
 
 	const result = await fetcherFunction();
-	await REDIS_INSTANCE.setex(key, expireInSeconds, JSON.stringify(result));
+	if (expireInSeconds === undefined) await REDIS_INSTANCE.set(key, JSON.stringify(result));
+	else await REDIS_INSTANCE.setex(key, expireInSeconds, JSON.stringify(result));
 	return result;
 }
 
-export async function setCachedValueIfNotExists(
-	key: string,
-	value: unknown,
-	expireInSeconds = 60 * 60 * 24 * 7, // One week
-): Promise<void> {
+export async function setCachedValueIfNotExists(key: string, value: unknown, expireInSeconds?: number): Promise<void> {
 	if (await REDIS_INSTANCE.exists(key)) return;
-	await REDIS_INSTANCE.setex(key, expireInSeconds, JSON.stringify(value));
+
+	if (expireInSeconds === undefined) await REDIS_INSTANCE.set(key, JSON.stringify(value));
+	else await REDIS_INSTANCE.setex(key, expireInSeconds, JSON.stringify(value));
 }
 
-export async function setCachedValue(key: string, value: unknown, expireInSeconds = 60 * 60 * 24 * 7): Promise<void> {
-	await REDIS_INSTANCE.setex(key, expireInSeconds, JSON.stringify(value));
+export async function setCachedValue(key: string, value: unknown, expireInSeconds?: number): Promise<void> {
+	if (expireInSeconds === undefined) await REDIS_INSTANCE.set(key, JSON.stringify(value));
+	else await REDIS_INSTANCE.setex(key, expireInSeconds, JSON.stringify(value));
+}
+
+export async function getCachedValuesByPattern<T>(pattern: string): Promise<Array<{ key: string; value: T | null }>> {
+	const keys = await REDIS_INSTANCE.keys(pattern);
+	return await Promise.all(keys.map(async (key) => ({ key, value: await getCachedValue<T>(key) })));
 }
 
 export async function getCachedValue<T>(key: string): Promise<T | null> {
