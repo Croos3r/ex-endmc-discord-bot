@@ -16,7 +16,7 @@ const MultiplierSchema = z
 	.object({
 		type: z.literal("status"),
 		statusText: z.string(),
-		requiredMinStatusDuration: z.number().int().min(1).default(86400),
+		requiredMinStatusDuration: z.number().int().min(1),
 	})
 	.or(
 		z.object({
@@ -26,16 +26,18 @@ const MultiplierSchema = z
 	)
 	.or(
 		z.object({
-			type: z.enum(["wonBattle", "lostBattle", "joinedGuild"]),
+			type: z.enum(["wonBattle" as const, "lostBattle" as const, "joinedGuild" as const]),
 		}),
 	)
 	.and(
 		z.object({
 			multiplier: z.number(),
-			multiplierDuration: z.number().int().min(1).optional(),
-			cooldownDuration: z.number().int().min(1).optional(),
+			multiplierDuration: z.number().int().min(1),
+			cooldownDuration: z.number().int().min(0).default(0),
 		}),
 	);
+
+export type Multiplier = z.infer<typeof MultiplierSchema>;
 
 export const ConfigurationSchema = z
 	.object({
@@ -64,9 +66,9 @@ export const ConfigurationSchema = z
 	})
 	.default({});
 
-export type Configuration = z.infer<typeof ConfigurationSchema>;
+export type ConfigurationService = z.infer<typeof ConfigurationSchema>;
 
-export async function loadConfiguration(): Promise<Configuration> {
+export async function loadConfiguration(): Promise<ConfigurationService> {
 	const file = await readFile("configuration.yaml", "utf-8");
 	const parsed = parse(file) ?? {};
 	return ConfigurationSchema.parse(parsed);

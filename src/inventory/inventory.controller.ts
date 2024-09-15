@@ -130,7 +130,7 @@ export class InventoryController {
 		);
 	}
 
-	@On({ event: "messageCreate" })
+	@On({ event: "messageCreate", priority: 1 })
 	async onMessageCreate([message]: ArgsOf<"messageCreate">) {
 		if (message.author.bot) return;
 		const trainer = message.author;

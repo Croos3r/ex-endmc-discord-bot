@@ -1,3 +1,5 @@
+# $schema: configuration.1.0.0.schema.json
+
 inventory:
   size: 3
 storage:
@@ -12,3 +14,19 @@ leveling:
   abilityPointsPerLevel:
     min: 1
     max: 5
+  multipliers:
+    pokemonMaster:
+      type: status
+      statusText: Maître des Pokémons
+      multiplier: 2
+      multiplierDuration: 86400
+      requiredMinStatusDuration: 86400
+    join:
+      type: joinedGuild
+      multiplier: 1.5
+      multiplierDuration: 10800
+    bestLyrics:
+      type: message
+      messageText: Je serais le meilleur dresseur
+      multiplier: 10
+      multiplierDuration: 60
