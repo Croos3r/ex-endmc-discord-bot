@@ -1,5 +1,4 @@
 import { Redis } from "ioredis";
-import { string } from "zod";
 
 const REDIS_INSTANCE = new Redis({
 	keyPrefix: "eedb:",
